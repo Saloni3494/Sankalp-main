@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+ENV/
+
+# Build & Deployment Outputs
+dist/
+dist-ssr/
+.output/
+.vercel/
+.nitro/
+.tanstack/
+.vinxi/
+.wrangler/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System & IDE files
+.DS_Store
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
