@@ -15,16 +15,24 @@ from schemas import ReviewRequest
 # Ensure DB is created
 Base.metadata.create_all(bind=engine)
 
+import os
+
 app = FastAPI(title="MPLADS Sentinel API")
 
-# Security: Remove CORS "*" and specify local dev origin
+allowed_origins_raw = os.environ.get("ALLOWED_ORIGINS", "*")
+if allowed_origins_raw.strip() == "*":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 

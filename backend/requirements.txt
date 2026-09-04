@@ -3,3 +3,6 @@ uvicorn>=0.29
 pandas>=2.0
 scikit-learn>=1.4
 python-multipart>=0.0.9
+sqlalchemy>=2.0
+gunicorn>=21.2.0
+
