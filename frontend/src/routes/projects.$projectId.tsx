@@ -4,7 +4,7 @@ import { PageHeader, SectionCard } from "@/components/mplads/PageHeader";
 import { RiskBadge, StatusBadge } from "@/components/mplads/badges";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useWorkDetails } from "@/lib/api";
+import { useWorkDetails, useWorkInvestigation } from "@/lib/api";
 import { RecommendedNextAction, AgenticOrchestrator, RiskGenome, AuditTimeMachine, RiskRelationshipGraph } from "@/components/mplads/InvestigationFeatures";
 
 export const Route = createFileRoute("/projects/$projectId")({
@@ -17,9 +17,30 @@ export const Route = createFileRoute("/projects/$projectId")({
 function ProjectDetail() {
   const { projectId } = Route.useLoaderData();
   const { data, isLoading, error } = useWorkDetails(projectId);
+  const { data: investigation, isLoading: invLoading } = useWorkInvestigation(projectId);
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading details...</div>;
   if (error || !data) return <div className="p-8 text-center text-danger">Failed to load project details.</div>;
+
+  const evidenceList: string[] = Array.isArray(data.evidence) ? data.evidence.map(String) : [];
+
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return "N/A";
+    try {
+      return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    } catch { return "N/A"; }
+  };
+
+  // Calculate delay: if completion_date exists and sanction_date exists, compute difference
+  let delayDays = 0;
+  if (data.sanction_date && data.completion_date) {
+    const sanction = new Date(data.sanction_date);
+    const completion = new Date(data.completion_date);
+    const diffMs = completion.getTime() - sanction.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    // If completion took more than 365 days from sanction, flag it as delayed
+    if (diffDays > 365) delayDays = diffDays - 365;
+  }
 
   const project = {
     id: data.work_id,
@@ -29,19 +50,19 @@ function ProjectDetail() {
     status: data.investigation_status || "Ongoing",
     sanctionedL: (data.sanction_amount || 0) / 100000,
     releasedL: (data.amount_disbursed || 0) / 100000,
-    spentL: (data.amount_disbursed || 0) / 100000, // Assuming spent is amount_disbursed
+    spentL: (data.amount_disbursed || 0) / 100000,
     progress: data.sanction_amount ? Math.min(100, Math.round((data.amount_disbursed / data.sanction_amount) * 100)) : 0,
     plannedProgress: 100,
-    delayDays: 0,
+    delayDays,
     riskScore: data.risk_score || 0,
-    riskReasons: data.risk_score > 0 ? ["Identified by ML model", "Payment anomalies"] : [],
+    riskReasons: evidenceList,
     district: data.constituency || data.ida,
     state: data.state,
     constituency: data.constituency,
     mp: data.mp_name,
     agency: data.ida,
-    sanctionDate: "N/A",
-    expectedCompletion: data.completion_date || "N/A"
+    sanctionDate: formatDate(data.sanction_date),
+    expectedCompletion: formatDate(data.completion_date),
   };
 
   const formatL = (val: number) => `₹${val.toFixed(2)}L`;
@@ -69,7 +90,7 @@ function ProjectDetail() {
 
       <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-5">
-          <RecommendedNextAction />
+          <RecommendedNextAction data={investigation} isLoading={invLoading} />
           
           <SectionCard title="Financial Overview">
             <div className="grid grid-cols-3 gap-4">
@@ -173,13 +194,13 @@ function ProjectDetail() {
             </div>
           </SectionCard>
 
-          <RiskGenome />
-          <AgenticOrchestrator />
+          <RiskGenome data={investigation} isLoading={invLoading} />
+          <AgenticOrchestrator data={investigation} isLoading={invLoading} />
         </div>
         
         <div className="lg:col-span-2 grid gap-5 lg:grid-cols-2">
-           <AuditTimeMachine />
-           <RiskRelationshipGraph />
+           <AuditTimeMachine data={data} isLoading={isLoading} />
+           <RiskRelationshipGraph data={investigation} isLoading={invLoading} />
         </div>
       </div>
     </div>

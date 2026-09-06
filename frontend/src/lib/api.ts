@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 const API_BASE = "http://localhost:8000";
 const API_KEY = "sankalp-admin-key";
 
-async function fetchAPI(endpoint: string, options?: RequestInit) {
+export async function fetchAPI(endpoint: string, options?: RequestInit) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
@@ -99,10 +99,76 @@ export function useWorkEvidence(workId: string) {
   });
 }
 
+export function useWorkInvestigation(workId: string) {
+  return useQuery({
+    queryKey: ["work", workId, "investigate"],
+    queryFn: () => fetchAPI(`/works/${encodeURIComponent(workId)}/investigate`),
+    enabled: !!workId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to avoid re-calling LLM
+    retry: 1,
+  });
+}
+
 export function useAnalyticsStates() {
   return useQuery({
     queryKey: ["analytics", "states"],
     queryFn: () => fetchAPI("/analytics/states"),
+  });
+}
+
+export function useAnalyticsFunds(house?: string) {
+  return useQuery({
+    queryKey: ["analytics", "funds", house],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (house && house !== "All Houses") searchParams.set("house", house);
+      return fetchAPI(`/analytics/funds?${searchParams.toString()}`);
+    }
+  });
+}
+
+export function useAnalyticsInsights(house?: string) {
+  return useQuery({
+    queryKey: ["analytics", "insights", house],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (house && house !== "All Houses") searchParams.set("house", house);
+      return fetchAPI(`/analytics/insights?${searchParams.toString()}`);
+    }
+  });
+}
+
+export function useAnalyticsCompliance(house?: string) {
+  return useQuery({
+    queryKey: ["analytics", "compliance", house],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (house && house !== "All Houses") searchParams.set("house", house);
+      return fetchAPI(`/analytics/compliance?${searchParams.toString()}`);
+    }
+  });
+}
+
+export function useAnalyticsDashboard(house?: string) {
+  return useQuery({
+    queryKey: ["analytics", "dashboard", house],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (house && house !== "All Houses") searchParams.set("house", house);
+      return fetchAPI(`/analytics/dashboard?${searchParams.toString()}`);
+    }
+  });
+}
+
+export function useAnalyticsStateSummary(stateName: string, house?: string) {
+  return useQuery({
+    queryKey: ["analytics", "state_summary", stateName, house],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      if (house && house !== "All Houses") searchParams.set("house", house);
+      return fetchAPI(`/analytics/states/${encodeURIComponent(stateName)}?${searchParams.toString()}`);
+    },
+    enabled: !!stateName
   });
 }
 

@@ -16,16 +16,10 @@ import { RiskBadge, StatusBadge, riskColor } from "@/components/mplads/badges";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  ALERTS,
-  PROJECTS,
-  RISK_CATEGORIES,
-  RISK_DISTRIBUTION,
-  RISK_FACTORS,
-  formatL,
-  type StateInfo,
+  formatL
 } from "@/lib/mplads-data";
 import { scaleByFilters, useFilters } from "@/lib/filters";
-import { useDashboardSummary, useWorks } from "@/lib/api";
+import { useDashboardSummary, useWorks, useAnalyticsDashboard, useAnalyticsStateSummary } from "@/lib/api";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export const Route = createFileRoute("/")({
@@ -49,11 +43,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { filters } = useFilters();
+  const { filters, setFilter } = useFilters();
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<StateInfo | null>(null);
+  const [selectedStateName, setSelectedStateName] = useState<string | null>(null);
 
   const { data: summaryData } = useDashboardSummary();
+  const { data: dashboardData } = useAnalyticsDashboard(filters.house);
+  const { data: stateSummary } = useAnalyticsStateSummary(selectedStateName || "", filters.house);
+
   const { data: worksData } = useWorks({
     limit: 6,
     house: filters.house,
@@ -124,11 +121,7 @@ function Dashboard() {
         };
       });
     }
-    
-    let list = PROJECTS;
-    if (filters.state !== "All States") list = list.filter((p) => p.state === filters.state);
-    if (filters.status !== "All Statuses") list = list.filter((p) => p.status === filters.status);
-    return list.slice(0, 6);
+    return [];
   }, [worksData, filters]);
 
   return (
@@ -185,90 +178,100 @@ function Dashboard() {
           title="MPLADS Activity Across India"
           subtitle="Shading and circle size reflect sanctioned works, utilisation and risk level"
         >
-          <IndiaMap onSelectState={setSelected} />
+          <IndiaMap onSelectState={setSelectedStateName} />
         </SectionCard>
 
         <div className="space-y-5">
-          {selected ? (
+          {selectedStateName && stateSummary ? (
             <SectionCard
-              title={selected.name}
+              title={stateSummary.name}
               subtitle="State-level summary for the selected financial year"
               actions={
-                <Button variant="ghost" size="sm" onClick={() => setSelected(null)}>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedStateName(null)}>
                   Clear
                 </Button>
               }
             >
               <div className="grid grid-cols-2 gap-3">
-                <Stat label="Projects" value={selected.projects.toLocaleString("en-IN")} />
-                <Stat label="Funds Utilised" value={`₹${selected.fundsUtilisedCr} Cr`} />
-                <Stat label="High Risk" value={String(selected.highRisk)} tone="danger" />
-                <Stat label="Delayed" value={String(selected.delayed)} tone="warning" />
+                <Stat label="Projects" value={stateSummary.projects.toLocaleString("en-IN")} />
+                <Stat label="Funds Utilised" value={`₹${stateSummary.fundsUtilisedCr} Cr`} />
+                <Stat label="High Risk" value={String(stateSummary.highRisk)} tone="danger" />
+                <Stat label="Delayed" value={String(stateSummary.delayed)} tone="warning" />
               </div>
               <div className="mt-4">
                 <div className="mb-1.5 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Fund utilisation</span>
-                  <span className="font-medium">{selected.utilisation}%</span>
+                  <span className="font-medium">{stateSummary.utilisation}%</span>
                 </div>
-                <Progress value={selected.utilisation} className="h-2" />
+                <Progress value={stateSummary.utilisation} className="h-2" />
               </div>
               <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-secondary px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">Overall risk level</span>
-                <RiskBadge level={selected.risk} />
+                <RiskBadge level={stateSummary.risk} />
               </div>
-              <Button className="mt-4 w-full" size="sm" asChild>
-                <Link to="/projects">View projects in {selected.name}</Link>
+              <Button 
+                className="mt-4 w-full" 
+                size="sm" 
+                asChild
+                onClick={() => setFilter("state", stateSummary.name)}
+              >
+                <Link to="/projects">View projects in {stateSummary.name}</Link>
               </Button>
             </SectionCard>
           ) : (
             <SectionCard title="Project Risk Score" subtitle="Distribution of works by AI-assessed risk level">
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="relative h-[170px] w-[170px] shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={RISK_DISTRIBUTION}
-                        dataKey="value"
-                        innerRadius={56}
-                        outerRadius={82}
-                        paddingAngle={2}
-                        stroke="none"
-                      >
-                        {RISK_DISTRIBUTION.map((d) => (
-                          <Cell key={d.name} fill={d.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold">72%</span>
-                    <span className="text-[11px] text-muted-foreground">Low risk</span>
+              {dashboardData?.risk_distribution ? (
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="relative h-[170px] w-[170px] shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={dashboardData.risk_distribution}
+                          dataKey="value"
+                          innerRadius={56}
+                          outerRadius={82}
+                          paddingAngle={2}
+                          stroke="none"
+                        >
+                          {dashboardData.risk_distribution.map((d: any) => (
+                            <Cell key={d.name} fill={d.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold">{dashboardData.risk_distribution.find((d: any) => d.name === "Safe")?.value || 0}%</span>
+                      <span className="text-[11px] text-muted-foreground">Safe</span>
+                    </div>
                   </div>
+                  <ul className="min-w-[130px] space-y-2 text-sm">
+                    {dashboardData.risk_distribution.map((d: any) => (
+                      <li key={d.name} className="flex items-center gap-2">
+                        <span className="size-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                        <span className="text-muted-foreground">{d.name}</span>
+                        <span className="ml-auto font-semibold">{d.value}%</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="min-w-[130px] space-y-2 text-sm">
-                  {RISK_DISTRIBUTION.map((d) => (
-                    <li key={d.name} className="flex items-center gap-2">
-                      <span className="size-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                      <span className="text-muted-foreground">{d.name}</span>
-                      <span className="ml-auto font-semibold">{d.value}%</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-5 border-t border-border pt-4">
-                <p className="mb-3 text-sm font-semibold">AI Risk Factors</p>
-                <ul className="space-y-2.5">
-                  {RISK_FACTORS.map((f) => (
-                    <li key={f.name}>
-                      <div className="mb-1 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{f.name}</span>
-                        <span className="font-medium">{f.value}%</span>
-                      </div>
-                      <Progress value={f.value} className="h-1.5" />
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              ) : null}
+              
+              {dashboardData?.risk_factors && dashboardData.risk_factors.length > 0 && (
+                <div className="mt-5 border-t border-border pt-4">
+                  <p className="mb-3 text-sm font-semibold">AI Risk Factors</p>
+                  <ul className="space-y-2.5">
+                    {dashboardData.risk_factors.map((f: any) => (
+                      <li key={f.name}>
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground truncate max-w-[200px]" title={f.name}>{f.name}</span>
+                          <span className="font-medium">{f.value}%</span>
+                        </div>
+                        <Progress value={f.value} className="h-1.5" />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </SectionCard>
           )}
         </div>
@@ -279,7 +282,7 @@ function Dashboard() {
         subtitle="Machine learning models continuously identify unusual project and financial patterns."
       >
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {RISK_CATEGORIES.map((c) => (
+          {dashboardData?.risk_categories?.map((c: any) => (
             <div key={c.key} className="rounded-xl border border-border bg-secondary/40 p-4">
               <span className="flex size-9 items-center justify-center rounded-lg bg-danger-soft text-danger">
                 <Layers className="size-[18px]" strokeWidth={1.8} />
@@ -295,7 +298,7 @@ function Dashboard() {
         </div>
       </SectionCard>
 
-      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <SectionCard
           title="Project Monitoring"
           subtitle="Recent works matching the current filters"
@@ -372,19 +375,19 @@ function Dashboard() {
           }
         >
           <div className="space-y-3">
-            {ALERTS.slice(0, 3).map((a) => (
+            {dashboardData?.alerts?.length ? dashboardData.alerts.slice(0, 3).map((a: any) => (
               <div key={a.id} className="rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between gap-2">
                   <RiskBadge level={a.level} />
                   <span className="text-[11px] text-muted-foreground">AI confidence {a.confidence}%</span>
                 </div>
-                <p className="mt-2.5 text-sm font-semibold">{a.title}</p>
-                <p className="text-xs text-muted-foreground">{a.project}</p>
+                <p className="mt-2.5 text-sm font-semibold truncate" title={a.title}>{a.title}</p>
+                <p className="text-xs text-muted-foreground truncate" title={a.project}>{a.project}</p>
                 <div className="mt-2.5 grid grid-cols-2 gap-2">
-                  {a.facts.map((f) => (
-                    <div key={f.label} className="rounded-lg bg-secondary px-2.5 py-1.5">
-                      <p className="text-[11px] text-muted-foreground">{f.label}</p>
-                      <p className="text-sm font-semibold">{f.value}</p>
+                  {a.facts?.map((f: any) => (
+                    <div key={f.label} className="rounded-lg bg-secondary px-2.5 py-1.5 overflow-hidden">
+                      <p className="text-[11px] text-muted-foreground truncate">{f.label}</p>
+                      <p className="text-sm font-semibold truncate" title={f.value}>{f.value}</p>
                     </div>
                   ))}
                 </div>
@@ -399,7 +402,9 @@ function Dashboard() {
                   </Link>
                 </Button>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-muted-foreground">No recent alerts found.</p>
+            )}
           </div>
         </SectionCard>
       </div>

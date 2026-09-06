@@ -6,7 +6,7 @@ import { Plus, Minus } from "lucide-react";
 
 const geoUrl = "/india.geojson";
 
-export function IndiaMap() {
+export function IndiaMap({ onSelectState }: { onSelectState?: (stateName: string) => void }) {
   const { data: states, isLoading, error } = useAnalyticsStates();
   const [position, setPosition] = useState({ coordinates: [80, 22], zoom: 1 });
   const [tooltip, setTooltip] = useState<{ name: string; risk: number | string; x: number; y: number } | null>(null);
@@ -35,7 +35,7 @@ export function IndiaMap() {
 
   const getFill = (stateName: string) => {
     const risk = riskData[stateName.toLowerCase()];
-    if (risk === undefined) return "#6eadffff"; // slate-200 (No data)
+    if (risk === undefined) return "#e2e8f0"; // slate-200 (No data)
     if (risk >= 60) return "#C94F22"; // Saffron (High Risk)
     if (risk >= 30) return "#fb923c"; // Orange (Med Risk)
     if (risk > 0) return "#fcd34d"; // Yellow (Low Risk)
@@ -103,7 +103,7 @@ export function IndiaMap() {
                           },
                         }}
                         onClick={() => {
-                          console.log(`Clicked on ${stateName} (Risk: ${risk})`);
+                          if (onSelectState) onSelectState(stateName);
                         }}
                         onMouseEnter={(e) => {
                           setTooltip({
