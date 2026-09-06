@@ -69,8 +69,8 @@ def run(houses=("Lok Sabha", "Rajya Sabha"), prediction_time: pd.Timestamp = Non
             master['evidence'] = master['evidence'].apply(lambda x: json.dumps(x) if isinstance(x, list) else x)
             
         # Add missing SQLAlchemy columns
-        master["investigation_status"] = "PENDING"
-        master["investigation_outcome"] = None
+        master["investigation_status"] = "UNREVIEWED"
+        master["investigation_outcome"] = "UNKNOWN_NONE"
         master["updated_at"] = None
             
         # Drop duplicates if any

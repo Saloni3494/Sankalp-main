@@ -81,6 +81,8 @@ def get_works(
     house: Optional[str] = Query(None),
     state: Optional[str] = Query(None),
     flagged_only: bool = Query(False),
+    sort_by: str = Query("risk_score"),
+    asc: bool = Query(False),
     db: Session = Depends(get_db)
 ):
     query = db.query(Work)
@@ -95,7 +97,21 @@ def get_works(
         query = query.filter(Work.state == state)
         
     total = query.count()
-    works = query.order_by(Work.risk_score.desc()).offset(offset).limit(limit).all()
+    
+    sort_map = {
+        "id": Work.work_id,
+        "sanctionedL": Work.sanction_amount,
+        "spentL": Work.amount_disbursed,
+        "progress": Work.amount_disbursed,
+        "riskScore": Work.risk_score
+    }
+    sort_col = sort_map.get(sort_by, Work.risk_score)
+    if asc:
+        query = query.order_by(sort_col.asc())
+    else:
+        query = query.order_by(sort_col.desc())
+        
+    works = query.offset(offset).limit(limit).all()
     
     # Convert to dict to match old frontend contract
     results = []
@@ -124,7 +140,7 @@ def get_works(
         "results": results,
     }
 
-@app.get("/works/{work_id}")
+@app.get("/works/{work_id:path}")
 def get_work(work_id: str, house: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Work).filter(Work.work_id == work_id)
     if house:
@@ -159,7 +175,7 @@ def get_work(work_id: str, house: Optional[str] = None, db: Session = Depends(ge
 
 # New Endpoints required by V7 Spec
 
-@app.get("/works/{work_id}/lifecycle")
+@app.get("/works/{work_id:path}/lifecycle")
 def get_work_lifecycle(work_id: str, house: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Work).filter(Work.work_id == work_id)
     if house: query = query.filter(Work.parliament_house == house)
@@ -172,21 +188,21 @@ def get_work_lifecycle(work_id: str, house: Optional[str] = None, db: Session = 
         "lifecycle_coverage": w.lifecycle_coverage
     }
 
-@app.get("/works/{work_id}/payments")
+@app.get("/works/{work_id:path}/payments")
 def get_work_payments(work_id: str, house: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Payment).filter(Payment.work_id == work_id)
     if house: query = query.filter(Payment.parliament_house == house)
     payments = query.all()
     return [{"vendor_name": p.vendor_name, "payment_amount": p.payment_amount, "payment_date": p.payment_date} for p in payments]
 
-@app.get("/works/{work_id}/vendors")
+@app.get("/works/{work_id:path}/vendors")
 def get_work_vendors(work_id: str, house: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Payment.vendor_name, func.sum(Payment.payment_amount).label("total")).filter(Payment.work_id == work_id)
     if house: query = query.filter(Payment.parliament_house == house)
     vendors = query.group_by(Payment.vendor_name).all()
     return [{"vendor_name": v[0], "total_paid": v[1]} for v in vendors if v[0]]
 
-@app.get("/works/{work_id}/evidence")
+@app.get("/works/{work_id:path}/evidence")
 def get_work_evidence(work_id: str, house: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Work).filter(Work.work_id == work_id)
     if house: query = query.filter(Work.parliament_house == house)
@@ -194,7 +210,7 @@ def get_work_evidence(work_id: str, house: Optional[str] = None, db: Session = D
     if not w: raise HTTPException(404)
     return {"evidence": w.evidence, "evidence_count": w.evidence_count, "data_completeness": w.data_completeness}
 
-@app.post("/investigations/{work_id}/review")
+@app.post("/investigations/{work_id:path}/review")
 def review_work(work_id: str, req: ReviewRequest, house: Optional[str] = None, db: Session = Depends(get_db), api_key: str = Depends(get_api_key)):
     query = db.query(Work).filter(Work.work_id == work_id)
     if house: query = query.filter(Work.parliament_house == house)
@@ -210,7 +226,7 @@ def review_work(work_id: str, req: ReviewRequest, house: Optional[str] = None, d
         
     return {"status": "success", "work_id": w.work_id, "investigation_status": w.investigation_status}
 
-@app.get("/risk/works/{work_id}")
+@app.get("/risk/works/{work_id:path}")
 def get_risk_work(work_id: str, house: Optional[str] = None, db: Session = Depends(get_db)):
     return get_work_evidence(work_id, house, db)
 
@@ -218,6 +234,53 @@ def get_risk_work(work_id: str, house: Optional[str] = None, db: Session = Depen
 def get_analytics_states(db: Session = Depends(get_db)):
     query = db.query(Work.state, func.count(Work.id), func.avg(Work.risk_score)).group_by(Work.state).all()
     return [{"state": r[0], "count": r[1], "avg_risk": r[2]} for r in query if r[0]]
+
+@app.get("/analytics/funds")
+def get_analytics_funds(house: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    # Base query for totals
+    query_total = db.query(
+        func.sum(Work.sanction_amount).label("total_sanctioned"),
+        func.sum(Work.amount_disbursed).label("total_expenditure")
+    )
+    if house and house != "All Houses":
+        query_total = query_total.filter(Work.parliament_house == house)
+    
+    totals = query_total.first()
+    
+    # Base query for state-wise
+    query_states = db.query(
+        Work.state,
+        func.sum(Work.sanction_amount).label("sanctioned"),
+        func.sum(Work.amount_disbursed).label("expenditure")
+    ).group_by(Work.state)
+    
+    if house and house != "All Houses":
+        query_states = query_states.filter(Work.parliament_house == house)
+        
+    state_funds = query_states.all()
+    
+    state_data = []
+    for r in state_funds:
+        if not r.state:
+            continue
+        sanc = r.sanctioned or 0
+        exp = r.expenditure or 0
+        utilization = (exp / sanc * 100) if sanc > 0 else 0
+        state_data.append({
+            "state": r.state,
+            "sanctioned": sanc,
+            "expenditure": exp,
+            "utilization": round(utilization, 2)
+        })
+    
+    return {
+        "totals": {
+            "sanctioned": totals.total_sanctioned or 0,
+            "expenditure": totals.total_expenditure or 0,
+            "utilization": round(((totals.total_expenditure or 0) / (totals.total_sanctioned or 1)) * 100, 2) if totals.total_sanctioned else 0
+        },
+        "state_data": sorted(state_data, key=lambda x: x["sanctioned"], reverse=True)
+    }
 
 @app.post("/pipeline/run")
 def rerun_pipeline(api_key: str = Depends(get_api_key)):

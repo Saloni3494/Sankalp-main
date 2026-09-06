@@ -49,22 +49,30 @@ function ProjectsPage() {
     offset: 0,
     min_risk: riskMin,
     house: filters.house,
-    state: filters.state
+    state: filters.state,
+    sort_by: sort,
+    asc: asc
   });
 
   const list = useMemo(() => {
-    let l = (data?.results || []).map((w: any) => ({
-      id: w.work_id,
-      name: w.work_description || "Untitled Work",
-      state: w.state,
-      district: w.constituency || w.ida,
-      sanctionedL: (w.sanction_amount || 0) / 100000,
-      spentL: (w.amount_disbursed || 0) / 100000,
-      progress: w.sanction_amount ? Math.min(100, Math.round((w.amount_disbursed / w.sanction_amount) * 100)) : 0,
-      riskScore: w.risk_score,
-      risk: w.risk_score >= 60 ? "High" : w.risk_score >= 30 ? "Medium" : w.risk_score > 0 ? "Low" : "Safe",
-      status: w.investigation_status || "Ongoing"
-    }));
+    let l = (data?.results || []).map((w: any) => {
+      const rawDistrict = w.constituency || w.ida || "Unknown";
+      const cleanDistrict = rawDistrict.split("(")[0].trim();
+      const districtTitle = cleanDistrict.charAt(0).toUpperCase() + cleanDistrict.slice(1).toLowerCase();
+      
+      return {
+        id: w.work_id,
+        name: w.work_description || "Untitled Work",
+        state: w.state,
+        district: districtTitle,
+        sanctionedL: (w.sanction_amount || 0) / 100000,
+        spentL: (w.amount_disbursed || 0) / 100000,
+        progress: w.sanction_amount ? Math.min(100, Math.round((w.amount_disbursed / w.sanction_amount) * 100)) : 0,
+        riskScore: w.risk_score,
+        risk: w.risk_score >= 60 ? "High" : w.risk_score >= 30 ? "Medium" : w.risk_score > 0 ? "Low" : "Safe",
+        status: w.investigation_status || "Ongoing"
+      };
+    });
 
     if (q.trim()) {
       const s = q.toLowerCase();
@@ -183,12 +191,16 @@ function ProjectsPage() {
                     onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
                     className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/50"
                   >
-                    <td className="px-3 py-3 pl-5 font-mono text-xs">{p.id}</td>
-                    <td className="px-3 py-3 font-medium">{p.name}</td>
+                    <td className="px-5 py-3 font-mono text-xs">{p.id}</td>
+                    <td className="px-3 py-3 font-medium">
+                      <div className="line-clamp-2 max-w-[280px]" title={p.name}>
+                        {p.name}
+                      </div>
+                    </td>
                     <td className="px-3 py-3 text-muted-foreground">{p.state}</td>
                     <td className="px-3 py-3 text-muted-foreground">{p.district}</td>
-                    <td className="px-3 py-3">{formatL(p.sanctionedL)}</td>
-                    <td className="px-3 py-3">{formatL(p.spentL)}</td>
+                    <td className="px-3 py-3">{p.sanctionedL > 0 ? formatL(p.sanctionedL) : "N/A"}</td>
+                    <td className="px-3 py-3">{p.spentL > 0 ? formatL(p.spentL) : "₹0 L"}</td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
                         <Progress value={p.progress} className="h-1.5 w-16" />

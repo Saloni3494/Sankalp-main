@@ -59,8 +59,14 @@ def load_all(house: str = "Lok Sabha") -> dict:
         }
         
         date_col = date_col_map.get(key)
+        
+        # Convert all known date columns to datetime
+        for date_field in ["recommended_date", "sanction_date", "completion_date", "consent_date", "expenditure_date"]:
+            if date_field in df.columns:
+                df[date_field] = pd.to_datetime(df[date_field], errors="coerce", dayfirst=False)
+                
         if date_col and date_col in df.columns:
-            df["event_time"] = pd.to_datetime(df[date_col], errors="coerce", dayfirst=False)
+            df["event_time"] = df[date_col]
             df["available_at"] = df["event_time"]  # Assume available immediately upon event
         else:
             df["event_time"] = pd.NaT

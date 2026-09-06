@@ -25,6 +25,7 @@ import {
   type StateInfo,
 } from "@/lib/mplads-data";
 import { scaleByFilters, useFilters } from "@/lib/filters";
+import { useDashboardSummary, useWorks } from "@/lib/api";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export const Route = createFileRoute("/")({
@@ -52,53 +53,83 @@ function Dashboard() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<StateInfo | null>(null);
 
+  const { data: summaryData } = useDashboardSummary();
+  const { data: worksData } = useWorks({
+    limit: 6,
+    house: filters.house,
+    state: filters.state,
+  });
+
   const kpis = useMemo(() => {
-    const projects = scaleByFilters(12486, filters);
-    const funds = scaleByFilters(84267, filters);
-    const highRisk = scaleByFilters(247, filters);
-    const delayed = scaleByFilters(386, filters);
+    // Fallback to static mock numbers if data isn't loaded yet
+    const projects = summaryData ? summaryData.total_works : scaleByFilters(12486, filters);
+    const funds = summaryData ? summaryData.total_amount_at_risk || 0 : scaleByFilters(84267, filters);
+    const highRisk = summaryData ? summaryData.high_risk_works : scaleByFilters(247, filters);
+    const missingPhoto = summaryData ? summaryData.missing_photo_count : scaleByFilters(386, filters);
+    
     return [
       {
         label: "Total Projects",
         value: projects.toLocaleString("en-IN"),
-        sub: "+8.4% from previous year",
+        sub: "Tracked in Sentinel",
         icon: FolderKanban,
         tone: "navy",
         up: true,
       },
       {
-        label: "Total Funds Utilized",
-        value: `₹${(funds / 100).toFixed(2)} Cr`,
-        sub: "78.4% utilization",
+        label: "Amount at Risk",
+        value: `₹${(funds / 10000000).toFixed(2)} Cr`,
+        sub: "Total flagged disbursements",
         icon: IndianRupee,
-        tone: "green",
+        tone: "danger",
         up: true,
       },
       {
         label: "High-Risk Projects",
         value: highRisk.toLocaleString("en-IN"),
-        sub: "18 new risks detected",
+        sub: "Requiring investigation",
         icon: ShieldAlert,
         tone: "danger",
         up: true,
       },
       {
-        label: "Projects Delayed",
-        value: delayed.toLocaleString("en-IN"),
-        sub: "3.1% of active projects",
+        label: "Missing Evidence",
+        value: missingPhoto.toLocaleString("en-IN"),
+        sub: "Works missing photos",
         icon: Clock,
         tone: "warning",
         up: false,
       },
     ] as const;
-  }, [filters]);
+  }, [summaryData, filters]);
 
   const rows = useMemo(() => {
+    if (worksData?.results) {
+      return worksData.results.map((w: any) => {
+        const rawDistrict = w.constituency || w.ida || "Unknown";
+        const cleanDistrict = rawDistrict.split("(")[0].trim();
+        const districtTitle = cleanDistrict.charAt(0).toUpperCase() + cleanDistrict.slice(1).toLowerCase();
+
+        return {
+          id: w.work_id,
+          name: w.work_description || "Untitled Work",
+          state: w.state,
+          district: districtTitle,
+          sanctionedL: (w.sanction_amount || 0) / 100000,
+          spentL: (w.amount_disbursed || 0) / 100000,
+          progress: w.sanction_amount ? Math.min(100, Math.round((w.amount_disbursed / w.sanction_amount) * 100)) : 0,
+          riskScore: w.risk_score,
+          risk: w.risk_score >= 60 ? "High" : w.risk_score >= 30 ? "Medium" : "Low",
+          status: w.investigation_status || "Ongoing"
+        };
+      });
+    }
+    
     let list = PROJECTS;
     if (filters.state !== "All States") list = list.filter((p) => p.state === filters.state);
     if (filters.status !== "All Statuses") list = list.filter((p) => p.status === filters.status);
     return list.slice(0, 6);
-  }, [filters]);
+  }, [worksData, filters]);
 
   return (
     <div className="space-y-6">
@@ -289,18 +320,22 @@ function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((p) => (
+                {rows.map((p: any) => (
                   <tr
                     key={p.id}
                     onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
                     className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/50"
                   >
                     <td className="px-5 py-3 font-mono text-xs">{p.id}</td>
-                    <td className="px-3 py-3 font-medium">{p.name}</td>
+                    <td className="px-3 py-3 font-medium">
+                      <div className="line-clamp-2 max-w-[280px]" title={p.name}>
+                        {p.name}
+                      </div>
+                    </td>
                     <td className="px-3 py-3 text-muted-foreground">
                       {p.district}, {p.state}
                     </td>
-                    <td className="px-3 py-3">{formatL(p.sanctionedL)}</td>
+                    <td className="px-3 py-3">{p.sanctionedL > 0 ? formatL(p.sanctionedL) : "N/A"}</td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
                         <Progress value={p.progress} className="h-1.5 w-16" />

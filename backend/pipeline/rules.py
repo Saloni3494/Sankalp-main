@@ -98,7 +98,7 @@ def flag_ongoing_utilization_trajectory(sanctioned_df: pd.DataFrame, expenditure
     sanction_amt = pd.to_numeric(ongoing["sanction_amount"], errors="coerce")
     ongoing["spend_trajectory_ratio"] = ongoing["current_spend"] / sanction_amt
     # NOT flagged as an anomaly -- informational only, for the dashboard's "in progress" view
-    return ongoing[["parliament_house", "work_id", "sanction_amount", "current_spend", "spend_trajectory_ratio"]]
+    return ongoing[["parliament_house", "work_id", "current_spend", "spend_trajectory_ratio"]]
 
 def flag_impossible_dates(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()

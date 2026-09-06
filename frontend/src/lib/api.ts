@@ -30,24 +30,30 @@ export function useDashboardSummary() {
   });
 }
 
-export function useWorks(params: {
+export interface UseWorksParams {
   limit?: number;
   offset?: number;
   min_risk?: number;
   house?: string;
   state?: string;
   flagged_only?: boolean;
-}) {
+  sort_by?: string;
+  asc?: boolean;
+}
+
+export function useWorks(params: UseWorksParams = {}) {
   return useQuery({
     queryKey: ["works", params],
     queryFn: () => {
       const searchParams = new URLSearchParams();
       if (params.limit) searchParams.set("limit", params.limit.toString());
       if (params.offset) searchParams.set("offset", params.offset.toString());
-      if (params.min_risk) searchParams.set("min_risk", params.min_risk.toString());
+      if (params.min_risk !== undefined) searchParams.set("min_risk", params.min_risk.toString());
       if (params.house && params.house !== "All Houses") searchParams.set("house", params.house);
       if (params.state && params.state !== "All States") searchParams.set("state", params.state);
       if (params.flagged_only) searchParams.set("flagged_only", "true");
+      if (params.sort_by) searchParams.set("sort_by", params.sort_by);
+      if (params.asc !== undefined) searchParams.set("asc", params.asc.toString());
       return fetchAPI(`/works?${searchParams.toString()}`);
     },
   });
@@ -56,7 +62,7 @@ export function useWorks(params: {
 export function useWorkDetails(workId: string) {
   return useQuery({
     queryKey: ["work", workId],
-    queryFn: () => fetchAPI(`/works/${workId}`),
+    queryFn: () => fetchAPI(`/works/${encodeURIComponent(workId)}`),
     enabled: !!workId,
   });
 }
@@ -64,7 +70,7 @@ export function useWorkDetails(workId: string) {
 export function useWorkLifecycle(workId: string) {
   return useQuery({
     queryKey: ["work", workId, "lifecycle"],
-    queryFn: () => fetchAPI(`/works/${workId}/lifecycle`),
+    queryFn: () => fetchAPI(`/works/${encodeURIComponent(workId)}/lifecycle`),
     enabled: !!workId,
   });
 }
@@ -72,7 +78,7 @@ export function useWorkLifecycle(workId: string) {
 export function useWorkPayments(workId: string) {
   return useQuery({
     queryKey: ["work", workId, "payments"],
-    queryFn: () => fetchAPI(`/works/${workId}/payments`),
+    queryFn: () => fetchAPI(`/works/${encodeURIComponent(workId)}/payments`),
     enabled: !!workId,
   });
 }
@@ -80,7 +86,7 @@ export function useWorkPayments(workId: string) {
 export function useWorkVendors(workId: string) {
   return useQuery({
     queryKey: ["work", workId, "vendors"],
-    queryFn: () => fetchAPI(`/works/${workId}/vendors`),
+    queryFn: () => fetchAPI(`/works/${encodeURIComponent(workId)}/vendors`),
     enabled: !!workId,
   });
 }
@@ -88,7 +94,7 @@ export function useWorkVendors(workId: string) {
 export function useWorkEvidence(workId: string) {
   return useQuery({
     queryKey: ["work", workId, "evidence"],
-    queryFn: () => fetchAPI(`/works/${workId}/evidence`),
+    queryFn: () => fetchAPI(`/works/${encodeURIComponent(workId)}/evidence`),
     enabled: !!workId,
   });
 }

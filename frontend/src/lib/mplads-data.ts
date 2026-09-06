@@ -72,7 +72,7 @@ export type Project = {
 
 export const PROJECTS: Project[] = [
   {
-    id: "MP-2025-001", name: "Community Health Centre", state: "Maharashtra", district: "Pune",
+    id: "WS/MP041/2025-2026/157420", name: "Community Health Centre", state: "Maharashtra", district: "Pune",
     constituency: "Pune", mp: "Smt. A. Deshmukh", agency: "Pune Zilla Parishad",
     sanctionedL: 45, spentL: 31, releasedL: 36, progress: 72, risk: "Low", riskScore: 24,
     status: "Ongoing", sanctionDate: "12 Apr 2025", expectedCompletion: "28 Feb 2026",
@@ -80,7 +80,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Expenditure aligned with physical progress", "No payment irregularity detected"],
   },
   {
-    id: "MP-2025-024", name: "Rural Road Development", state: "Bihar", district: "Patna",
+    id: "WS/MP041/2024-2025/55649", name: "Rural Road Development", state: "Bihar", district: "Patna",
     constituency: "Patliputra", mp: "Shri R. K. Singh", agency: "Rural Works Department, Patna",
     sanctionedL: 62, spentL: 58, releasedL: 60, progress: 43, risk: "High", riskScore: 82,
     status: "Delayed", sanctionDate: "03 May 2025", expectedCompletion: "31 Jan 2026",
@@ -93,7 +93,7 @@ export const PROJECTS: Project[] = [
     ],
   },
   {
-    id: "MP-2025-047", name: "Community Hall", state: "Maharashtra", district: "Pune",
+    id: "WS/MP113/2025-2026/184498", name: "Community Hall", state: "Maharashtra", district: "Pune",
     constituency: "Baramati", mp: "Smt. A. Deshmukh", agency: "Pune Municipal Corporation",
     sanctionedL: 52, spentL: 38, releasedL: 44, progress: 42, risk: "Medium", riskScore: 61,
     status: "Ongoing", sanctionDate: "22 May 2025", expectedCompletion: "15 Mar 2026",
@@ -101,7 +101,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Progress–expenditure mismatch of 31 percentage points", "Two milestone delays recorded"],
   },
   {
-    id: "MP-2025-063", name: "Primary School Additional Block", state: "Uttar Pradesh", district: "Varanasi",
+    id: "WS/MP041/2025-2026/157410", name: "Primary School Additional Block", state: "Uttar Pradesh", district: "Varanasi",
     constituency: "Varanasi", mp: "Shri M. Pandey", agency: "UP Education Works Cell",
     sanctionedL: 38, spentL: 34, releasedL: 34, progress: 91, risk: "Low", riskScore: 19,
     status: "Ongoing", sanctionDate: "09 Apr 2025", expectedCompletion: "10 Dec 2025",
@@ -109,7 +109,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Ahead of planned progress", "Documentation complete"],
   },
   {
-    id: "MP-2025-088", name: "Drinking Water Pipeline", state: "Bihar", district: "Gaya",
+    id: "WS/MP041/2025-2026/157409", name: "Drinking Water Pipeline", state: "Bihar", district: "Gaya",
     constituency: "Gaya", mp: "Shri D. Kumar", agency: "PHED Gaya Division",
     sanctionedL: 74, spentL: 69, releasedL: 70, progress: 55, risk: "High", riskScore: 77,
     status: "Delayed", sanctionDate: "17 Apr 2025", expectedCompletion: "20 Feb 2026",
@@ -117,7 +117,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Unusual payment clustering near quarter end", "Delay of 61 days", "Cost deviation of 21%"],
   },
   {
-    id: "MP-2025-102", name: "Solar Street Lighting", state: "Gujarat", district: "Surat",
+    id: "WS/MP041/2025-2026/157408", name: "Solar Street Lighting", state: "Gujarat", district: "Surat",
     constituency: "Surat", mp: "Smt. P. Patel", agency: "Surat Municipal Corporation",
     sanctionedL: 29, spentL: 26, releasedL: 27, progress: 96, risk: "Low", riskScore: 15,
     status: "Completed", sanctionDate: "05 Apr 2025", expectedCompletion: "30 Sep 2025",
@@ -125,7 +125,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Completed within sanctioned cost"],
   },
   {
-    id: "MP-2025-119", name: "Anganwadi Centre Construction", state: "Assam", district: "Kamrup",
+    id: "WS/MP041/2025-2026/157407", name: "Anganwadi Centre Construction", state: "Assam", district: "Kamrup",
     constituency: "Guwahati", mp: "Shri B. Barua", agency: "Kamrup District Council",
     sanctionedL: 24, spentL: 21, releasedL: 22, progress: 48, risk: "Medium", riskScore: 58,
     status: "Delayed", sanctionDate: "28 Apr 2025", expectedCompletion: "18 Jan 2026",
@@ -133,7 +133,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Delay of 39 days", "Utilisation running ahead of progress"],
   },
   {
-    id: "MP-2025-134", name: "Public Library Modernisation", state: "Tamil Nadu", district: "Madurai",
+    id: "WS/MP041/2025-2026/157418", name: "Public Library Modernisation", state: "Tamil Nadu", district: "Madurai",
     constituency: "Madurai", mp: "Shri S. Raman", agency: "Madurai Corporation",
     sanctionedL: 33, spentL: 24, releasedL: 26, progress: 74, risk: "Low", riskScore: 21,
     status: "Ongoing", sanctionDate: "14 Apr 2025", expectedCompletion: "05 Feb 2026",
@@ -141,7 +141,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["No anomaly detected"],
   },
   {
-    id: "MP-2025-156", name: "Check Dam & Water Harvesting", state: "Rajasthan", district: "Jaipur",
+    id: "WS/MP041/2025-2026/157417", name: "Check Dam & Water Harvesting", state: "Rajasthan", district: "Jaipur",
     constituency: "Jaipur Rural", mp: "Shri V. Meena", agency: "Water Resources Dept.",
     sanctionedL: 58, spentL: 49, releasedL: 52, progress: 51, risk: "High", riskScore: 74,
     status: "Delayed", sanctionDate: "19 Apr 2025", expectedCompletion: "12 Feb 2026",
@@ -149,7 +149,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Similar work sanctioned 4 km away (possible duplication)", "Delay of 52 days"],
   },
   {
-    id: "MP-2025-171", name: "Sports Ground Development", state: "Karnataka", district: "Mysuru",
+    id: "WS/MP041/2024-2025/55648", name: "Sports Ground Development", state: "Karnataka", district: "Mysuru",
     constituency: "Mysuru", mp: "Smt. K. Rao", agency: "Mysuru City Corporation",
     sanctionedL: 41, spentL: 30, releasedL: 33, progress: 69, risk: "Low", riskScore: 26,
     status: "Ongoing", sanctionDate: "26 Apr 2025", expectedCompletion: "22 Mar 2026",
@@ -157,7 +157,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Within tolerance on all indicators"],
   },
   {
-    id: "MP-2025-188", name: "Bus Shelter Cluster", state: "West Bengal", district: "Howrah",
+    id: "WS/MP041/2025-2026/157415", name: "Bus Shelter Cluster", state: "West Bengal", district: "Howrah",
     constituency: "Howrah", mp: "Shri T. Ghosh", agency: "Howrah Municipal Corporation",
     sanctionedL: 18, spentL: 17, releasedL: 18, progress: 35, risk: "High", riskScore: 79,
     status: "Delayed", sanctionDate: "11 Apr 2025", expectedCompletion: "15 Dec 2025",
@@ -165,7 +165,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["94% funds spent against 35% progress", "Delay of 88 days", "Duplicate description found in 2 works"],
   },
   {
-    id: "MP-2025-203", name: "Primary Health Sub-Centre", state: "Odisha", district: "Cuttack",
+    id: "WS/MP041/2025-2026/157412", name: "Primary Health Sub-Centre", state: "Odisha", district: "Cuttack",
     constituency: "Cuttack", mp: "Shri N. Mohapatra", agency: "Odisha Health Works Unit",
     sanctionedL: 36, spentL: 22, releasedL: 26, progress: 61, risk: "Medium", riskScore: 47,
     status: "Ongoing", sanctionDate: "02 May 2025", expectedCompletion: "28 Feb 2026",
@@ -173,7 +173,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Minor schedule slippage"],
   },
   {
-    id: "MP-2025-218", name: "Village Drainage Network", state: "Madhya Pradesh", district: "Indore",
+    id: "WS/MP041/2025-2026/157411", name: "Village Drainage Network", state: "Madhya Pradesh", district: "Indore",
     constituency: "Indore", mp: "Smt. R. Verma", agency: "Indore Rural Works",
     sanctionedL: 47, spentL: 12, releasedL: 20, progress: 22, risk: "Medium", riskScore: 55,
     status: "Ongoing", sanctionDate: "30 Jun 2025", expectedCompletion: "30 Apr 2026",
@@ -181,7 +181,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Slow fund utilisation", "Delay of 21 days"],
   },
   {
-    id: "MP-2025-235", name: "Skill Training Centre", state: "Punjab", district: "Ludhiana",
+    id: "WS/MP041/2025-2026/157413", name: "Skill Training Centre", state: "Punjab", district: "Ludhiana",
     constituency: "Ludhiana", mp: "Shri H. Gill", agency: "Punjab Skill Mission",
     sanctionedL: 55, spentL: 41, releasedL: 45, progress: 78, risk: "Low", riskScore: 28,
     status: "Ongoing", sanctionDate: "21 Apr 2025", expectedCompletion: "18 Mar 2026",
@@ -189,7 +189,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["No anomaly detected"],
   },
   {
-    id: "MP-2025-249", name: "Crematorium Upgradation", state: "Jharkhand", district: "Ranchi",
+    id: "WS/MP041/2025-2026/157414", name: "Crematorium Upgradation", state: "Jharkhand", district: "Ranchi",
     constituency: "Ranchi", mp: "Shri A. Oraon", agency: "Ranchi Municipal Corporation",
     sanctionedL: 21, spentL: 20, releasedL: 21, progress: 40, risk: "High", riskScore: 71,
     status: "Delayed", sanctionDate: "08 Apr 2025", expectedCompletion: "10 Jan 2026",
@@ -197,7 +197,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Expenditure at 95% with 40% progress", "Delay of 66 days"],
   },
   {
-    id: "MP-2025-262", name: "Cattle Shed & Fodder Unit", state: "Haryana", district: "Hisar",
+    id: "WS/MP001/2024-2025/136964", name: "Cattle Shed & Fodder Unit", state: "Haryana", district: "Hisar",
     constituency: "Hisar", mp: "Shri J. Sheoran", agency: "Animal Husbandry Dept.",
     sanctionedL: 16, spentL: 15, releasedL: 16, progress: 100, risk: "Low", riskScore: 12,
     status: "Completed", sanctionDate: "07 Apr 2025", expectedCompletion: "15 Aug 2025",
@@ -205,7 +205,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Completed and certified"],
   },
   {
-    id: "MP-2025-277", name: "Riverfront Walkway", state: "Telangana", district: "Hyderabad",
+    id: "WS/MP041/2024-2025/55650", name: "Riverfront Walkway", state: "Telangana", district: "Hyderabad",
     constituency: "Secunderabad", mp: "Smt. L. Reddy", agency: "GHMC",
     sanctionedL: 68, spentL: 39, releasedL: 46, progress: 57, risk: "Medium", riskScore: 52,
     status: "Ongoing", sanctionDate: "15 May 2025", expectedCompletion: "30 Apr 2026",
@@ -213,7 +213,7 @@ export const PROJECTS: Project[] = [
     riskReasons: ["Slight schedule slippage"],
   },
   {
-    id: "MP-2025-291", name: "Cyclone Shelter Repair", state: "Andhra Pradesh", district: "Kakinada",
+    id: "WS/MP041/2024-2025/55624", name: "Cyclone Shelter Repair", state: "Andhra Pradesh", district: "Kakinada",
     constituency: "Kakinada", mp: "Shri C. Naidu", agency: "AP Disaster Management Cell",
     sanctionedL: 27, spentL: 0, releasedL: 0, progress: 0, risk: "Medium", riskScore: 44,
     status: "Cancelled", sanctionDate: "18 Apr 2025", expectedCompletion: "—",
@@ -264,37 +264,37 @@ export type Alert = {
 
 export const ALERTS: Alert[] = [
   {
-    id: "AL-4412", level: "High", title: "Cost Overrun Detected", projectId: "MP-2025-024",
+    id: "AL-4412", level: "High", title: "Cost Overrun Detected", projectId: "WS/MP041/2024-2025/55649",
     project: "Rural Road Development – Patna",
     facts: [{ label: "Sanctioned", value: "₹62 L" }, { label: "Estimated Final Cost", value: "₹91 L" }],
     confidence: 94, action: "Investigate",
   },
   {
-    id: "AL-4409", level: "Medium", title: "Progress–Expenditure Mismatch", projectId: "MP-2025-047",
+    id: "AL-4409", level: "Medium", title: "Progress–Expenditure Mismatch", projectId: "WS/MP113/2025-2026/184498",
     project: "Community Hall – Pune",
     facts: [{ label: "Spent", value: "₹38 L" }, { label: "Physical Progress", value: "42%" }],
     confidence: 87, action: "View Details",
   },
   {
-    id: "AL-4401", level: "High", title: "Unusual Payment Pattern", projectId: "MP-2025-088",
+    id: "AL-4401", level: "High", title: "Unusual Payment Pattern", projectId: "WS/MP041/2025-2026/157409",
     project: "Drinking Water Pipeline – Gaya",
     facts: [{ label: "Released", value: "₹70 L" }, { label: "Single-cycle payment", value: "₹41 L" }],
     confidence: 91, action: "Investigate",
   },
   {
-    id: "AL-4396", level: "Medium", title: "Possible Duplicate Work", projectId: "MP-2025-156",
+    id: "AL-4396", level: "Medium", title: "Possible Duplicate Work", projectId: "WS/MP041/2025-2026/157417",
     project: "Check Dam & Water Harvesting – Jaipur",
     facts: [{ label: "Similarity", value: "88%" }, { label: "Distance", value: "4 km" }],
     confidence: 82, action: "View Details",
   },
   {
-    id: "AL-4390", level: "High", title: "Expenditure Far Ahead of Progress", projectId: "MP-2025-188",
+    id: "AL-4390", level: "High", title: "Expenditure Far Ahead of Progress", projectId: "WS/MP041/2025-2026/157415",
     project: "Bus Shelter Cluster – Howrah",
     facts: [{ label: "Funds used", value: "94%" }, { label: "Progress", value: "35%" }],
     confidence: 96, action: "Investigate",
   },
   {
-    id: "AL-4385", level: "Low", title: "Documentation Pending", projectId: "MP-2025-203",
+    id: "AL-4385", level: "Low", title: "Documentation Pending", projectId: "WS/MP041/2025-2026/157412",
     project: "Primary Health Sub-Centre – Cuttack",
     facts: [{ label: "Missing", value: "Work order copy" }, { label: "Pending since", value: "23 days" }],
     confidence: 78, action: "View Details",
@@ -397,7 +397,7 @@ export const NOTIFICATIONS = [
   { id: "n4", level: "Low" as RiskLevel, text: "Monthly compliance report generated", detail: "August 2026", time: "Yesterday" },
 ];
 
-export const formatL = (l: number) => `₹${l} L`;
+export const formatL = (l: number) => `₹${l === 0 ? 0 : Number(l.toFixed(2))} L`;
 
 export const AI_SUGGESTIONS = [
   "Show high-risk projects in Maharashtra.",
