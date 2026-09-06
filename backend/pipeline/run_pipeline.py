@@ -55,15 +55,36 @@ def run(houses=("Lok Sabha", "Rajya Sabha"), prediction_time: pd.Timestamp = Non
     print("[7/7] Saving to database...")
     db = SessionLocal()
     try:
-        # Save expenditure details
-        if datasets.get("expenditure") is not None:
-            crud.upsert_payments(db, datasets.get("expenditure"))
+        # Convert datetime columns properly
+        for col in master.select_dtypes(include=['datetime64[ns]']).columns:
+            master[col] = master[col].astype(str).replace('NaT', None)
+            
+        if ongoing_full is not None and not ongoing_full.empty:
+            for col in ongoing_full.select_dtypes(include=['datetime64[ns]']).columns:
+                ongoing_full[col] = ongoing_full[col].astype(str).replace('NaT', None)
+            master = pd.concat([master, ongoing_full], ignore_index=True)
+            
+        # Serialize lists to JSON strings for SQLite compatibility
+        if 'evidence' in master.columns:
+            master['evidence'] = master['evidence'].apply(lambda x: json.dumps(x) if isinstance(x, list) else x)
+            
+        # Add missing SQLAlchemy columns
+        master["investigation_status"] = "PENDING"
+        master["investigation_outcome"] = None
+        master["updated_at"] = None
+            
+        # Drop duplicates if any
+        master = master.drop_duplicates(subset=["parliament_house", "work_id"])
         
         # Save works
-        crud.upsert_works(db, master)
+        master.to_sql("works", con=engine, if_exists="replace", index=True, index_label="id")
         
-        if ongoing_full is not None and not ongoing_full.empty:
-            crud.upsert_works(db, ongoing_full)
+        # Save expenditure details
+        exp = datasets.get("expenditure")
+        if exp is not None and not exp.empty:
+            for col in exp.select_dtypes(include=['datetime64[ns]']).columns:
+                exp[col] = exp[col].astype(str).replace('NaT', None)
+            exp.to_sql("payments", con=engine, if_exists="replace", index=True, index_label="id")
         
         summary = {
             "total_works": len(master),

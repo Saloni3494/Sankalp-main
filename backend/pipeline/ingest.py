@@ -8,11 +8,10 @@ import pandas as pd
 from pathlib import Path
 from .config import CANONICAL_COLUMNS, extract_work_id, normalize_work_id, LS_FILENAMES, RS_FILENAMES
 
-RAW_DIR = Path(__file__).parent.parent / "data" / "raw"
-
+RAW_DIR = Path(__file__).parent.parent.parent / "Sankalp-dataset"
 
 def _load_csv(filename: str, house: str) -> pd.DataFrame | None:
-    path = RAW_DIR / filename
+    path = RAW_DIR / house.replace(" ", "-") / filename
     if not path.exists():
         print(f"[ingest] WARNING: {filename} not found, skipping ({house})")
         return None

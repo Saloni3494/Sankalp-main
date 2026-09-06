@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PROJECTS, formatL, type Project } from "@/lib/mplads-data";
+import { formatL } from "@/lib/mplads-data";
 import { useFilters } from "@/lib/filters";
+import { useWorks } from "@/lib/api";
 
 export const Route = createFileRoute("/projects/")({
   head: () => ({
@@ -41,32 +42,48 @@ function ProjectsPage() {
   const [asc, setAsc] = useState(true);
   const [page, setPage] = useState(0);
 
+  const riskMin = risk === "High" ? 60 : risk === "Medium" ? 30 : risk === "Low" ? 1 : 0;
+  
+  const { data, isLoading } = useWorks({
+    limit: 100,
+    offset: 0,
+    min_risk: riskMin,
+    house: filters.house,
+    state: filters.state
+  });
+
   const list = useMemo(() => {
-    let l = [...PROJECTS];
-    if (filters.state !== "All States") l = l.filter((p) => p.state === filters.state);
-    if (filters.district !== "All Districts") l = l.filter((p) => p.district === filters.district);
-    if (filters.constituency !== "All Constituencies") l = l.filter((p) => p.constituency === filters.constituency);
-    if (filters.mp !== "All MPs") l = l.filter((p) => p.mp === filters.mp);
-    if (filters.status !== "All Statuses") l = l.filter((p) => p.status === filters.status);
-    if (risk !== "All Risk Levels") l = l.filter((p) => p.risk === risk);
+    let l = (data?.results || []).map((w: any) => ({
+      id: w.work_id,
+      name: w.work_description || "Untitled Work",
+      state: w.state,
+      district: w.constituency || w.ida,
+      sanctionedL: (w.sanction_amount || 0) / 100000,
+      spentL: (w.amount_disbursed || 0) / 100000,
+      progress: w.sanction_amount ? Math.min(100, Math.round((w.amount_disbursed / w.sanction_amount) * 100)) : 0,
+      riskScore: w.risk_score,
+      risk: w.risk_score >= 60 ? "High" : w.risk_score >= 30 ? "Medium" : w.risk_score > 0 ? "Low" : "Safe",
+      status: w.investigation_status || "Ongoing"
+    }));
+
     if (q.trim()) {
       const s = q.toLowerCase();
       l = l.filter(
-        (p) =>
+        (p: any) =>
           p.name.toLowerCase().includes(s) ||
           p.id.toLowerCase().includes(s) ||
           p.district.toLowerCase().includes(s) ||
           p.state.toLowerCase().includes(s),
       );
     }
-    l.sort((a, b) => {
+    l.sort((a: any, b: any) => {
       const av = a[sort];
       const bv = b[sort];
       const r = typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv));
       return asc ? r : -r;
     });
     return l;
-  }, [filters, q, risk, sort, asc]);
+  }, [data, q, sort, asc]);
 
   const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
@@ -147,38 +164,45 @@ function ProjectsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((p: Project) => (
-                <tr
-                  key={p.id}
-                  onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
-                  className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/50"
-                >
-                  <td className="px-3 py-3 pl-5 font-mono text-xs">{p.id}</td>
-                  <td className="px-3 py-3 font-medium">{p.name}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{p.state}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{p.district}</td>
-                  <td className="px-3 py-3">{formatL(p.sanctionedL)}</td>
-                  <td className="px-3 py-3">{formatL(p.spentL)}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <Progress value={p.progress} className="h-1.5 w-16" />
-                      <span className="text-xs text-muted-foreground">{p.progress}%</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <RiskBadge level={p.risk} />
-                  </td>
-                  <td className="px-3 py-3 pr-5">
-                    <StatusBadge status={p.status} />
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground">
+                    Loading works from backend...
                   </td>
                 </tr>
-              ))}
-              {rows.length === 0 && (
+              ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-5 py-10 text-center text-sm text-muted-foreground">
                     No projects match the current search and filters.
                   </td>
                 </tr>
+              ) : (
+                rows.map((p: any) => (
+                  <tr
+                    key={p.id}
+                    onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/50"
+                  >
+                    <td className="px-3 py-3 pl-5 font-mono text-xs">{p.id}</td>
+                    <td className="px-3 py-3 font-medium">{p.name}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{p.state}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{p.district}</td>
+                    <td className="px-3 py-3">{formatL(p.sanctionedL)}</td>
+                    <td className="px-3 py-3">{formatL(p.spentL)}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <Progress value={p.progress} className="h-1.5 w-16" />
+                        <span className="text-xs text-muted-foreground">{p.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <RiskBadge level={p.risk} />
+                    </td>
+                    <td className="px-3 py-3 pr-5">
+                      <StatusBadge status={p.status} />
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

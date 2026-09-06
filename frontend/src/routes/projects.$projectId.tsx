@@ -4,20 +4,47 @@ import { PageHeader, SectionCard } from "@/components/mplads/PageHeader";
 import { RiskBadge, StatusBadge } from "@/components/mplads/badges";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { PROJECTS, formatL } from "@/lib/mplads-data";
+import { useWorkDetails } from "@/lib/api";
 import { RecommendedNextAction, AgenticOrchestrator, RiskGenome, AuditTimeMachine, RiskRelationshipGraph } from "@/components/mplads/InvestigationFeatures";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params: { projectId } }) => {
-    const project = PROJECTS.find((p) => p.id === projectId);
-    if (!project) throw notFound();
-    return { project };
+    return { projectId };
   },
   component: ProjectDetail,
 });
 
 function ProjectDetail() {
-  const { project } = Route.useLoaderData();
+  const { projectId } = Route.useLoaderData();
+  const { data, isLoading, error } = useWorkDetails(projectId);
+
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading details...</div>;
+  if (error || !data) return <div className="p-8 text-center text-danger">Failed to load project details.</div>;
+
+  const project = {
+    id: data.work_id,
+    name: data.work_description || "Untitled Work",
+    category: data.work_category || "General",
+    risk: data.risk_score >= 60 ? "High" : data.risk_score >= 30 ? "Medium" : data.risk_score > 0 ? "Low" : "Safe",
+    status: data.investigation_status || "Ongoing",
+    sanctionedL: (data.sanction_amount || 0) / 100000,
+    releasedL: (data.amount_disbursed || 0) / 100000,
+    spentL: (data.amount_disbursed || 0) / 100000, // Assuming spent is amount_disbursed
+    progress: data.sanction_amount ? Math.min(100, Math.round((data.amount_disbursed / data.sanction_amount) * 100)) : 0,
+    plannedProgress: 100,
+    delayDays: 0,
+    riskScore: data.risk_score || 0,
+    riskReasons: data.risk_score > 0 ? ["Identified by ML model", "Payment anomalies"] : [],
+    district: data.constituency || data.ida,
+    state: data.state,
+    constituency: data.constituency,
+    mp: data.mp_name,
+    agency: data.ida,
+    sanctionDate: "N/A",
+    expectedCompletion: data.completion_date || "N/A"
+  };
+
+  const formatL = (val: number) => `₹${val.toFixed(2)}L`;
 
   return (
     <div className="space-y-6">
@@ -34,8 +61,8 @@ function ProjectDetail() {
         subtitle={`Project ID: ${project.id} • ${project.category}`}
         actions={
           <div className="flex items-center gap-3">
-            <RiskBadge level={project.risk} />
-            <StatusBadge status={project.status} />
+            <RiskBadge level={project.risk as any} />
+            <StatusBadge status={project.status as any} />
           </div>
         }
       />

@@ -23,21 +23,21 @@ WEIGHTS = {
 
 # Real filenames as exported from the portal (Lok Sabha). Update the RS dict once those land.
 LS_FILENAMES = {
-    "recommended": "Works_Recommended.csv",
-    "sanctioned": "Works_Sanctioned.csv",
-    "completed": "Works_Completed.csv",
-    "expenditure": "Expenditure.csv",
-    "allocation": "Allocated_Limit.csv",
-    "calamity": "Calamity.csv",
+    "recommended": "Works Recommended.csv",
+    "sanctioned": "Works Sanctioned.csv",
+    "completed": "Works Completed.csv",
+    "expenditure": "Expenditure on Completed and On-going Works as on Date.csv",
+    "allocation": "Allocated Limit for Honble MPs.csv",
+    "calamity": "Amount consented for Calamity.csv",
 }
 
 RS_FILENAMES = {
-    "recommended": "RS_Works_Recommended.csv",
-    "sanctioned": "RS_Works_Sanctioned.csv",
-    "completed": "RS_Works_Completed.csv",
-    "expenditure": "RS_Expenditure.csv",
-    "allocation": "RS_Allocated_Limit.csv",
-    "calamity": "RS_Calamity.csv",
+    "recommended": "Works Recommended.csv",
+    "sanctioned": "Works Sanctioned.csv",
+    "completed": "Works Completed.csv",
+    "expenditure": "Expenditure on Completed and On-going Works as on Date.csv",
+    "allocation": "Allocated Limit for Honble MPs.csv",
+    "calamity": "Amount consented for Calamity.csv",
 }
 
 # The Work ID is embedded at the start of the "Work"/"WORK" column, e.g.

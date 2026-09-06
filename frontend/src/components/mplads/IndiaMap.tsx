@@ -1,119 +1,178 @@
-import { useState } from "react";
-import { STATES, type StateInfo } from "@/lib/mplads-data";
-import { riskColor } from "./badges";
-import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import { useAnalyticsStates } from "@/lib/api";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Minus } from "lucide-react";
 
-const INDIA_PATH =
-  "M186 22c14 5 25 15 41 15 13 0 20-9 32-8 12 1 15 12 12 22-3 11-14 19-13 31 1 11 13 17 24 16 15-1 29-8 44-6 14 2 23 13 21 26-2 12-14 20-18 32-4 13 2 27-2 40-4 12-16 20-19 32-3 13 4 27 0 40-4 14-18 22-24 35-7 14-6 31-14 44-8 13-24 19-32 32-9 14-9 32-17 46-8 13-25 20-40 17-16-3-27-17-33-32-7-17-8-36-17-52-9-15-25-25-33-41-8-15-8-33-16-48-8-14-23-23-29-38-6-14-3-30-9-44-6-13-19-22-22-36-3-13 3-27 1-41-2-13-11-25-9-38 2-12 13-21 25-24 13-3 27 2 39-2 12-4 21-15 33-19 12-4 25-1 37-3 12-2 22-11 34-13 13-2 26 3 38 6z";
+const geoUrl = "/india.geojson";
 
-export function IndiaMap({
-  metric = "activity",
-  onSelectState,
-}: {
-  metric?: "activity" | "utilisation" | "risk";
-  onSelectState?: (s: StateInfo) => void;
-}) {
-  const [hover, setHover] = useState<StateInfo | null>(null);
+export function IndiaMap() {
+  const { data: states, isLoading, error } = useAnalyticsStates();
+  const [position, setPosition] = useState({ coordinates: [80, 22], zoom: 1 });
+  const [tooltip, setTooltip] = useState<{ name: string; risk: number | string; x: number; y: number } | null>(null);
 
-  const maxProjects = Math.max(...STATES.map((s) => s.projects));
+  function handleZoomIn() {
+    if (position.zoom >= 4) return;
+    setPosition((pos) => ({ ...pos, zoom: pos.zoom * 1.5 }));
+  }
 
-  const fill = (s: StateInfo) => {
-    if (metric === "risk") return riskColor(s.risk);
-    if (metric === "utilisation") return "var(--india-green)";
-    return "var(--saffron)";
-  };
-  const opacity = (s: StateInfo) => {
-    if (metric === "utilisation") return 0.25 + (s.utilisation / 100) * 0.7;
-    if (metric === "risk") return 0.85;
-    return 0.3 + (s.projects / maxProjects) * 0.65;
+  function handleZoomOut() {
+    if (position.zoom <= 1) return;
+    setPosition((pos) => ({ ...pos, zoom: pos.zoom / 1.5 }));
+  }
+
+  function handleMoveEnd(position: any) {
+    setPosition(position);
+  }
+
+  const riskData = useMemo(() => {
+    if (!states) return {};
+    return states.reduce((acc: any, s: any) => {
+      acc[s.state.toLowerCase()] = s.avg_risk;
+      return acc;
+    }, {});
+  }, [states]);
+
+  const getFill = (stateName: string) => {
+    const risk = riskData[stateName.toLowerCase()];
+    if (risk === undefined) return "#6eadffff"; // slate-200 (No data)
+    if (risk >= 60) return "#C94F22"; // Saffron (High Risk)
+    if (risk >= 30) return "#fb923c"; // Orange (Med Risk)
+    if (risk > 0) return "#fcd34d"; // Yellow (Low Risk)
+    return "#2F6B3F"; // Green (Safe)
   };
 
   return (
-    <div className="relative">
-      <div className="relative mx-auto aspect-[4/5] w-full max-w-[420px]">
-        <svg viewBox="0 0 460 560" className="size-full">
-          <path
-            d={INDIA_PATH}
-            fill="var(--muted)"
-            stroke="var(--border)"
-            strokeWidth="2"
-            transform="translate(20 10) scale(0.95)"
-          />
-        </svg>
-
-        {STATES.map((s) => {
-          const size = 12 + (s.projects / maxProjects) * 22;
-          return (
-            <button
-              key={s.id}
-              onMouseEnter={() => setHover(s)}
-              onMouseLeave={() => setHover(null)}
-              onFocus={() => setHover(s)}
-              onBlur={() => setHover(null)}
-              onClick={() => onSelectState?.(s)}
-              aria-label={`${s.name}: ${s.projects} projects`}
-              className={cn(
-                "absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-card transition-transform duration-150 hover:scale-125 focus-visible:scale-125 focus-visible:outline-none",
-                hover?.id === s.id && "scale-125",
-              )}
-              style={{
-                left: `${s.x}%`,
-                top: `${s.y}%`,
-                width: size,
-                height: size,
-                backgroundColor: fill(s),
-                opacity: opacity(s),
-              }}
-            />
-          );
-        })}
-
-        {hover && (
-          <div
-            className="pointer-events-none absolute z-20 w-56 rounded-xl border border-border bg-popover p-3 shadow-panel"
-            style={{
-              left: `${Math.min(hover.x, 58)}%`,
-              top: `${Math.min(hover.y + 4, 74)}%`,
+    <Card className="card-surface flex flex-col h-full border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-bold text-navy">India Risk Heatmap</CardTitle>
+        <CardDescription>Average risk score by state</CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col relative min-h-[400px]">
+        {isLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+            Loading Map...
+          </div>
+        ) : error ? (
+          <div className="absolute inset-0 flex items-center justify-center text-danger text-sm">
+            Failed to load map data.
+          </div>
+        ) : (
+          <ComposableMap
+            projection="geoMercator"
+            projectionConfig={{
+              scale: 1000,
+              center: [80, 22]
             }}
+            width={800}
+            height={600}
+            className="w-full h-full object-contain"
           >
-            <p className="text-sm font-semibold text-foreground">{hover.name}</p>
-            <dl className="mt-2 space-y-1 text-xs">
-              <Row label="Projects" value={hover.projects.toLocaleString("en-IN")} />
-              <Row label="Funds Utilised" value={`₹${hover.fundsUtilisedCr} Cr`} />
-              <Row label="High Risk" value={String(hover.highRisk)} />
-              <Row label="Delayed" value={String(hover.delayed)} />
-            </dl>
-            <p className="mt-2 border-t border-border pt-2 text-[11px] text-muted-foreground">
-              Click to open state details
-            </p>
+            <ZoomableGroup
+              zoom={position.zoom}
+              center={position.coordinates as [number, number]}
+              onMoveEnd={handleMoveEnd}
+            >
+              <Geographies geography={geoUrl}>
+                {({ geographies }) =>
+                  geographies.map((geo) => {
+                    const stateName = geo.properties.NAME_1 || geo.properties.name || "";
+                    const risk = riskData[stateName.toLowerCase()];
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        style={{
+                          default: {
+                            fill: getFill(stateName),
+                            stroke: "#cbd5e1",
+                            strokeWidth: 0.5,
+                            outline: "none"
+                          },
+                          hover: {
+                            fill: "#102B4E",
+                            stroke: "#ffffff",
+                            strokeWidth: 1,
+                            outline: "none",
+                            cursor: "pointer",
+                            transition: "all 250ms"
+                          },
+                          pressed: {
+                            fill: "#102B4E",
+                            outline: "none"
+                          },
+                        }}
+                        onClick={() => {
+                          console.log(`Clicked on ${stateName} (Risk: ${risk})`);
+                        }}
+                        onMouseEnter={(e) => {
+                          setTooltip({
+                            name: stateName,
+                            risk: risk !== undefined ? risk : "No Data",
+                            x: e.clientX,
+                            y: e.clientY,
+                          });
+                        }}
+                        onMouseMove={(e) => {
+                          setTooltip((prev) =>
+                            prev ? { ...prev, x: e.clientX, y: e.clientY } : null
+                          );
+                        }}
+                        onMouseLeave={() => {
+                          setTooltip(null);
+                        }}
+                      />
+                    );
+                  })
+                }
+              </Geographies>
+            </ZoomableGroup>
+          </ComposableMap>
+        )}
+
+        {/* Tooltip */}
+        {tooltip && (
+          <div
+            className="fixed z-50 rounded-md bg-navy px-3 py-2 text-xs text-white shadow-xl pointer-events-none border border-white/10"
+            style={{ top: tooltip.y + 15, left: tooltip.x + 15 }}
+          >
+            <div className="font-bold">{tooltip.name}</div>
+            <div className="text-white/80 mt-0.5">
+              Risk: {typeof tooltip.risk === "number" ? tooltip.risk.toFixed(1) : tooltip.risk}
+            </div>
           </div>
         )}
-      </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-        <Legend color="var(--success)" label="Low Risk" />
-        <Legend color="var(--warning)" label="Medium Risk" />
-        <Legend color="var(--danger)" label="High Risk" />
-        <span className="text-[11px]">Circle size = number of sanctioned works</span>
-      </div>
-    </div>
-  );
-}
+        {/* Zoom Controls */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
+          <button
+            onClick={handleZoomIn}
+            className="p-2 bg-card/80 backdrop-blur border border-border rounded-md shadow-sm hover:bg-secondary transition-colors text-navy"
+            title="Zoom In"
+          >
+            <Plus className="size-4" />
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="p-2 bg-card/80 backdrop-blur border border-border rounded-md shadow-sm hover:bg-secondary transition-colors text-navy"
+            title="Zoom Out"
+          >
+            <Minus className="size-4" />
+          </button>
+        </div>
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium text-foreground">{value}</dd>
-    </div>
-  );
-}
-
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="size-2.5 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
+        {/* Legend */}
+        <div className="absolute bottom-4 right-4 bg-card/80 backdrop-blur border border-border p-3 rounded-lg shadow-sm">
+          <div className="text-xs font-semibold mb-2 text-navy">Risk Level</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-[11px]"><span className="w-3 h-3 rounded-sm bg-[#C94F22]"></span> High (≥60)</div>
+            <div className="flex items-center gap-2 text-[11px]"><span className="w-3 h-3 rounded-sm bg-[#fb923c]"></span> Medium (30-59)</div>
+            <div className="flex items-center gap-2 text-[11px]"><span className="w-3 h-3 rounded-sm bg-[#fcd34d]"></span> Low (&gt;0)</div>
+            <div className="flex items-center gap-2 text-[11px]"><span className="w-3 h-3 rounded-sm bg-[#2F6B3F]"></span> Safe (0)</div>
+            <div className="flex items-center gap-2 text-[11px]"><span className="w-3 h-3 rounded-sm bg-[#e2e8f0]"></span> No Data</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

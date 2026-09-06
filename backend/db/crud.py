@@ -15,6 +15,8 @@ def upsert_works(db: Session, works_df: pd.DataFrame):
         for k, v in r.items():
             if pd.isna(v):
                 r[k] = None
+            elif isinstance(v, pd.Timestamp):
+                r[k] = v.to_pydatetime()
                 
     # We will just do simple get-or-create/update to be DB agnostic
     for r in records:
@@ -71,6 +73,8 @@ def upsert_payments(db: Session, payments_df: pd.DataFrame):
         for k, v in r.items():
             if pd.isna(v):
                 r[k] = None
+            elif isinstance(v, pd.Timestamp):
+                r[k] = v.to_pydatetime()
                 
         payment = Payment(
             parliament_house=r.get("parliament_house"),
