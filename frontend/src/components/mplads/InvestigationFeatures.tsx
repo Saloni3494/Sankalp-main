@@ -253,83 +253,110 @@ export function RiskGenome({ data, isLoading }: { data?: InvestigationData; isLo
 }
 
 export function AuditTimeMachine({ data, isLoading }: { data?: any; isLoading?: boolean }) {
-  // Use real dates if available, fallback to logical progression
-  const recYear = data?.recommended_date ? new Date(data.recommended_date).getFullYear() : 2023;
-  const sancYear = data?.sanction_date ? new Date(data.sanction_date).getFullYear() : 2024;
-  const currentYear = new Date().getFullYear();
-
-  // De-duplicate timeline years so we have 3 distinct points
-  let y1 = recYear;
-  let y2 = sancYear;
-  let y3 = currentYear;
-  
-  if (y2 <= y1) y2 = y1 + 1;
-  if (y3 <= y2) y3 = y2 + 1;
-
-  const timelineYears = [y1, y2, y3];
-  const [selectedYear, setSelectedYear] = useState(y3);
+  const [selectedNode, setSelectedNode] = useState(0);
 
   if (isLoading) {
     return (
       <SectionCard title="Audit Time Machine">
         <div className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" /> Loading timeline...
+          <Loader2 className="size-4 animate-spin" /> Loading event ledger...
         </div>
       </SectionCard>
     );
   }
+
+  // Construct the verified Event Ledger
+  const ledger = [];
   
-  const historyData: any = {
-    [y1]: { risk: 12, level: "Low", status: "Recommended", signal: "Project initiated." },
-    [y2]: { risk: 38, level: "Medium", status: "Sanctioned", signal: "Funds approved." },
-    [y3]: { 
-      risk: data?.risk_score || 0, 
-      level: (data?.risk_score || 0) >= 60 ? "Critical" : (data?.risk_score || 0) >= 30 ? "Medium" : "Low", 
-      status: data?.missing_photo ? "Delayed" : "In Progress", 
-      signal: data?.evidence?.length > 0 ? data.evidence[0] : "No significant anomalies." 
-    },
-  };
-  
-  const d = historyData[selectedYear] || historyData[y3];
+  if (data?.recommended_date) {
+    ledger.push({
+      date: new Date(data.recommended_date).toISOString().split('T')[0],
+      title: "Project Recommended",
+      status: "Initiated",
+      signal: "Initial state captured. No verified risk baseline available.",
+      risk: null,
+      level: "Low"
+    });
+  }
+
+  if (data?.sanction_date) {
+    ledger.push({
+      date: new Date(data.sanction_date).toISOString().split('T')[0],
+      title: "Funds Sanctioned",
+      status: "Sanctioned",
+      signal: `Sanction Amount: ₹${((data.sanction_amount || 0) / 100000).toFixed(1)}L`,
+      risk: null,
+      level: "Low"
+    });
+  }
+
+  if (data?.completion_date) {
+    ledger.push({
+      date: new Date(data.completion_date).toISOString().split('T')[0],
+      title: "Project Completed",
+      status: "Completed",
+      signal: "Project marked as completed by state authority.",
+      risk: null,
+      level: "Low"
+    });
+  }
+
+  // Always append Current Snapshot
+  ledger.push({
+    date: new Date().toISOString().split('T')[0],
+    title: "Current Snapshot",
+    status: data?.missing_photo ? "Delayed / Flagged" : (data?.completion_date ? "Completed" : "In Progress"),
+    signal: data?.evidence?.length > 0 ? data.evidence[0] : "No significant anomalies detected.",
+    risk: data?.risk_score || 0,
+    level: (data?.risk_score || 0) >= 60 ? "High" : (data?.risk_score || 0) >= 30 ? "Medium" : "Low"
+  });
+
+  // Ensure we select the last node by default if the selected node is out of bounds
+  const activeNodeIndex = selectedNode < ledger.length ? selectedNode : ledger.length - 1;
+  const d = ledger[activeNodeIndex];
 
   return (
     <SectionCard title="Audit Time Machine">
       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
         <History className="size-4" />
-        Historical reconstruction of project state.
+        Verified event ledger. Historical risk is immutable.
       </div>
       
-      <div className="flex items-center justify-between mb-6">
-        {timelineYears.map(y => (
-          <div key={y} className="flex-1 flex flex-col items-center relative">
+      <div className="flex items-center justify-between mb-6 px-2">
+        {ledger.map((node, idx) => (
+          <div key={idx} className="flex-1 flex flex-col items-center relative group">
             <button 
-              onClick={() => setSelectedYear(y)}
+              onClick={() => setSelectedNode(idx)}
               className={cn(
-                "size-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors z-10 relative",
-                selectedYear === y ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-border"
+                "size-4 rounded-full flex items-center justify-center transition-all z-10 relative ring-4 ring-card",
+                activeNodeIndex === idx ? "bg-primary scale-125" : "bg-secondary hover:bg-border"
               )}
-            >
-              {y}
-            </button>
-            {y !== y3 && <div className="absolute top-4 left-1/2 w-full h-0.5 bg-border -z-0" />}
+            />
+            {idx !== ledger.length - 1 && <div className="absolute top-2 left-1/2 w-full h-0.5 bg-border -z-0" />}
+            <span className="text-[10px] text-muted-foreground mt-2 font-mono">{new Date(node.date).getFullYear()}</span>
           </div>
         ))}
       </div>
       
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start border-b border-border pb-3">
           <div>
-            <p className="text-xs text-muted-foreground uppercase">Risk Score</p>
-            <p className="text-2xl font-serif font-bold text-foreground">{d.risk}</p>
+            <p className="text-xs text-muted-foreground uppercase font-semibold">{d.title}</p>
+            <p className="text-xs font-mono text-muted-foreground mt-0.5">{d.date}</p>
           </div>
-          <RiskBadge level={d.level} />
+          {d.risk !== null && (
+            <div className="text-right">
+               <p className="text-xs text-muted-foreground uppercase">Risk Score</p>
+               <p className="text-xl font-serif font-bold text-foreground">{d.risk}</p>
+            </div>
+          )}
         </div>
         <div>
           <p className="text-xs text-muted-foreground uppercase">Status</p>
           <p className="text-sm font-medium">{d.status}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground uppercase">Major Risk Signals</p>
+          <p className="text-xs text-muted-foreground uppercase">Event Detail / Signals</p>
           <p className="text-sm text-foreground">{d.signal}</p>
         </div>
       </div>
