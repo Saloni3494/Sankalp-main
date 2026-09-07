@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { RiskBadge } from "./badges";
+import { updateInvestigationStatusAPI } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface InvestigationData {
   recommended_action?: { title: string; reason: string; priority: string };
@@ -18,7 +20,40 @@ interface InvestigationData {
   source?: string;
 }
 
-export function RecommendedNextAction({ data, isLoading }: { data?: InvestigationData; isLoading?: boolean }) {
+export function RecommendedNextAction({ data, isLoading, workId, status, outcome }: { data?: InvestigationData; isLoading?: boolean; workId?: string; status?: string; outcome?: string }) {
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [selectedOutcome, setSelectedOutcome] = useState("CLEARED");
+  const queryClient = useQueryClient();
+
+  const handleRequestVerification = async () => {
+    if (!workId) return;
+    setIsVerifying(true);
+    try {
+      await updateInvestigationStatusAPI(workId, "INVESTIGATION_OPEN", "UNKNOWN/NONE");
+      // Refresh the specific work data
+      await queryClient.invalidateQueries({ queryKey: ["work", workId] });
+      // Optionally invalidate list queries if needed
+      await queryClient.invalidateQueries({ queryKey: ["works"] });
+    } catch (error) {
+      console.error("Failed to request verification", error);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleCloseInvestigation = async () => {
+    if (!workId) return;
+    setIsVerifying(true);
+    try {
+      await updateInvestigationStatusAPI(workId, "INVESTIGATION_CLOSED", selectedOutcome);
+      await queryClient.invalidateQueries({ queryKey: ["work", workId] });
+      await queryClient.invalidateQueries({ queryKey: ["works"] });
+    } catch (error) {
+      console.error("Failed to close investigation", error);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
   if (isLoading) {
     return (
       <SectionCard title="Recommended Next Action" className="border-primary/20 bg-primary/5">
@@ -43,13 +78,54 @@ export function RecommendedNextAction({ data, isLoading }: { data?: Investigatio
           <p className="mt-1 text-xs text-muted-foreground">
             {action?.reason || "This project has no significant risk flags."}
           </p>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className={cn(
               "text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded",
               action?.priority === "High" ? "text-danger bg-danger/10" :
               action?.priority === "Medium" ? "text-warning bg-warning/10" : "text-india-green bg-india-green/10"
             )}>{action?.priority || "Low"} Priority</span>
-            <Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90">Request Verification</Button>
+            
+            {status === "INVESTIGATION_CLOSED" ? (
+              <span className={cn(
+                "text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded",
+                outcome === "CLEARED" ? "text-emerald-600 bg-emerald-500/10" :
+                outcome === "IRREGULARITY_CONFIRMED" ? "text-red-600 bg-red-500/10" : "text-orange-600 bg-orange-500/10"
+              )}>
+                {outcome === "UNKNOWN_NONE" || outcome === "UNKNOWN/NONE" ? "Closed (No Outcome)" : outcome?.replace("_", " ")}
+              </span>
+            ) : status === "INVESTIGATION_OPEN" ? (
+              <div className="flex items-center gap-2 ml-auto w-full mt-2 sm:mt-0 sm:w-auto sm:ml-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-border">
+                <select 
+                  className="h-7 text-xs rounded border border-border bg-background px-2"
+                  value={selectedOutcome}
+                  onChange={(e) => setSelectedOutcome(e.target.value)}
+                  disabled={isVerifying}
+                >
+                  <option value="CLEARED">Cleared (No Issues)</option>
+                  <option value="INCONCLUSIVE">Inconclusive</option>
+                  <option value="IRREGULARITY_CONFIRMED">Irregularity Confirmed</option>
+                </select>
+                <Button 
+                  size="sm" 
+                  className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
+                  onClick={handleCloseInvestigation}
+                  disabled={isVerifying || !workId}
+                >
+                  {isVerifying ? <Loader2 className="size-3 mr-1 animate-spin" /> : null}
+                  {isVerifying ? "Submitting..." : "Submit Report"}
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                size="sm" 
+                className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 ml-auto sm:ml-0"
+                onClick={handleRequestVerification}
+                disabled={isVerifying || !workId}
+              >
+                {isVerifying ? <Loader2 className="size-3 mr-1 animate-spin" /> : null}
+                {isVerifying ? "Requesting..." : "Request Verification"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

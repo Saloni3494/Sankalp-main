@@ -9,7 +9,7 @@ const geoUrl = "/india.geojson";
 export function IndiaMap({ onSelectState }: { onSelectState?: (stateName: string) => void }) {
   const { data: states, isLoading, error } = useAnalyticsStates();
   const [position, setPosition] = useState({ coordinates: [80, 22], zoom: 1 });
-  const [tooltip, setTooltip] = useState<{ name: string; risk: number | string; x: number; y: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ name: string; risk: number | string; count: number; x: number; y: number } | null>(null);
 
   function handleZoomIn() {
     if (position.zoom >= 4) return;
@@ -28,13 +28,14 @@ export function IndiaMap({ onSelectState }: { onSelectState?: (stateName: string
   const riskData = useMemo(() => {
     if (!states) return {};
     return states.reduce((acc: any, s: any) => {
-      acc[s.state.toLowerCase()] = s.avg_risk;
+      acc[s.state.toLowerCase()] = { avg_risk: s.avg_risk, count: s.count };
       return acc;
     }, {});
   }, [states]);
 
   const getFill = (stateName: string) => {
-    const risk = riskData[stateName.toLowerCase()];
+    const entry = riskData[stateName.toLowerCase()];
+    const risk = entry?.avg_risk;
     if (risk === undefined) return "#e2e8f0"; // slate-200 (No data)
     if (risk >= 60) return "#C94F22"; // Saffron (High Risk)
     if (risk >= 30) return "#fb923c"; // Orange (Med Risk)
@@ -46,7 +47,7 @@ export function IndiaMap({ onSelectState }: { onSelectState?: (stateName: string
     <Card className="card-surface flex flex-col h-full border-border">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-bold text-navy">India Risk Heatmap</CardTitle>
-        <CardDescription>Average risk score by state</CardDescription>
+        <CardDescription>Click any state to see why it's at risk</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col relative min-h-[400px]">
         {isLoading ? (
@@ -106,9 +107,11 @@ export function IndiaMap({ onSelectState }: { onSelectState?: (stateName: string
                           if (onSelectState) onSelectState(stateName);
                         }}
                         onMouseEnter={(e) => {
+                          const entry = riskData[stateName.toLowerCase()];
                           setTooltip({
                             name: stateName,
-                            risk: risk !== undefined ? risk : "No Data",
+                            risk: entry?.avg_risk !== undefined ? entry.avg_risk : "No Data",
+                            count: entry?.count || 0,
                             x: e.clientX,
                             y: e.clientY,
                           });
@@ -133,13 +136,19 @@ export function IndiaMap({ onSelectState }: { onSelectState?: (stateName: string
         {/* Tooltip */}
         {tooltip && (
           <div
-            className="fixed z-50 rounded-md bg-navy px-3 py-2 text-xs text-white shadow-xl pointer-events-none border border-white/10"
+            className="fixed z-50 rounded-lg bg-navy px-3.5 py-2.5 text-xs text-white shadow-xl pointer-events-none border border-white/10"
             style={{ top: tooltip.y + 15, left: tooltip.x + 15 }}
           >
-            <div className="font-bold">{tooltip.name}</div>
-            <div className="text-white/80 mt-0.5">
-              Risk: {typeof tooltip.risk === "number" ? tooltip.risk.toFixed(1) : tooltip.risk}
+            <div className="font-bold text-sm">{tooltip.name}</div>
+            <div className="text-white/70 mt-1 space-y-0.5">
+              <div>Avg Risk: <span className={`font-semibold ${
+                typeof tooltip.risk === "number" 
+                  ? tooltip.risk >= 60 ? "text-red-400" : tooltip.risk >= 30 ? "text-orange-400" : "text-emerald-400"
+                  : "text-white/50"
+              }`}>{typeof tooltip.risk === "number" ? tooltip.risk.toFixed(1) : tooltip.risk}</span></div>
+              {tooltip.count > 0 && <div>{tooltip.count} projects</div>}
             </div>
+            <div className="text-white/40 text-[10px] mt-1.5 italic">Click to see reasons →</div>
           </div>
         )}
 

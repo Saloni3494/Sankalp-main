@@ -73,7 +73,7 @@ class Payment(Base):
     work_id = Column(String, index=True)
     vendor_name = Column(String)
     payment_amount = Column(Float)
-    payment_date = Column(DateTime, nullable=True)
+    expenditure_date = Column(String, nullable=True)
     event_time = Column(DateTime, nullable=True)
     available_at = Column(DateTime, nullable=True)
     

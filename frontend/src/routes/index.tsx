@@ -185,37 +185,133 @@ function Dashboard() {
           {selectedStateName && stateSummary ? (
             <SectionCard
               title={stateSummary.name}
-              subtitle="State-level summary for the selected financial year"
+              subtitle={`Avg Risk: ${stateSummary.avgRisk ?? "—"} · ${stateSummary.projects} projects · ₹${stateSummary.sanctionedCr ?? stateSummary.fundsUtilisedCr} Cr sanctioned`}
               actions={
                 <Button variant="ghost" size="sm" onClick={() => setSelectedStateName(null)}>
-                  Clear
+                  ✕ Close
                 </Button>
               }
             >
+              {/* KPI Row */}
               <div className="grid grid-cols-2 gap-3">
                 <Stat label="Projects" value={stateSummary.projects.toLocaleString("en-IN")} />
                 <Stat label="Funds Utilised" value={`₹${stateSummary.fundsUtilisedCr} Cr`} />
                 <Stat label="High Risk" value={String(stateSummary.highRisk)} tone="danger" />
                 <Stat label="Delayed" value={String(stateSummary.delayed)} tone="warning" />
               </div>
+
+              {/* Fund Utilisation Bar */}
               <div className="mt-4">
                 <div className="mb-1.5 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Fund utilisation</span>
                   <span className="font-medium">{stateSummary.utilisation}%</span>
                 </div>
-                <Progress value={stateSummary.utilisation} className="h-2" />
+                <Progress value={Math.min(stateSummary.utilisation, 100)} className="h-2" />
               </div>
+
+              {/* Overall Risk Badge */}
               <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-secondary px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">Overall risk level</span>
                 <RiskBadge level={stateSummary.risk} />
               </div>
+
+              {/* ===== AI RISK REASONS — The key differentiator ===== */}
+              {stateSummary.reasons && stateSummary.reasons.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <p className="text-xs font-bold tracking-wider uppercase text-primary mb-3">
+                    🧠 Why is {stateSummary.name} at risk?
+                  </p>
+                  <div className="space-y-2">
+                    {stateSummary.reasons.map((r: any, i: number) => (
+                      <div
+                        key={i}
+                        className={`flex items-start gap-2.5 rounded-lg border p-2.5 text-xs ${
+                          r.severity === "high"
+                            ? "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/20"
+                            : r.severity === "medium"
+                            ? "border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/20"
+                            : "border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20"
+                        }`}
+                      >
+                        <span className="text-base leading-none mt-0.5 shrink-0">{r.icon}</span>
+                        <span className="text-foreground leading-relaxed">{r.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Risk Dimensions Mini-Bars */}
+              {stateSummary.risk_dimensions && Object.keys(stateSummary.risk_dimensions).length > 0 && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <p className="text-xs font-bold tracking-wider uppercase text-muted-foreground mb-3">
+                    Risk Dimensions
+                  </p>
+                  <div className="space-y-2.5">
+                    {Object.entries(stateSummary.risk_dimensions).map(([key, dim]: [string, any]) => (
+                      <div key={key}>
+                        <div className="flex items-center justify-between text-[11px] mb-1">
+                          <span className="text-muted-foreground">{dim.label}</span>
+                          <span className={`font-bold ${dim.score >= 60 ? "text-red-500" : dim.score >= 30 ? "text-orange-500" : "text-emerald-500"}`}>
+                            {dim.score}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              dim.score >= 60 ? "bg-red-500" : dim.score >= 30 ? "bg-orange-400" : "bg-emerald-500"
+                            }`}
+                            style={{ width: `${dim.score}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Risky Projects */}
+              {stateSummary.top_risky_projects && stateSummary.top_risky_projects.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <p className="text-xs font-bold tracking-wider uppercase text-muted-foreground mb-3">
+                    Top Risky Projects
+                  </p>
+                  <div className="space-y-2">
+                    {stateSummary.top_risky_projects.slice(0, 3).map((p: any) => (
+                      <Link
+                        key={p.work_id}
+                        to={`/projects/${encodeURIComponent(p.work_id)}`}
+                        className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-2 hover:bg-secondary transition-colors group"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                            {p.description}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {p.mp_name || "—"} · ₹{((p.amount || 0) / 100000).toFixed(1)}L
+                          </p>
+                        </div>
+                        <span className={`ml-2 shrink-0 text-[10px] font-bold px-2 py-0.5 rounded ${
+                          p.risk_score >= 60 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                          p.risk_score >= 30 ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
+                          "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        }`}>
+                          {p.risk_score}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* View All Projects Button */}
               <Button 
                 className="mt-4 w-full" 
                 size="sm" 
                 asChild
                 onClick={() => setFilter("state", stateSummary.name)}
               >
-                <Link to="/projects">View projects in {stateSummary.name}</Link>
+                <Link to="/projects">View all projects in {stateSummary.name}</Link>
               </Button>
             </SectionCard>
           ) : (

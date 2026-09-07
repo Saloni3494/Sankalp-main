@@ -167,6 +167,13 @@ export function useWorkInvestigation(workId: string) {
   });
 }
 
+export async function updateInvestigationStatusAPI(workId: string, status: string, outcome: string) {
+  return fetchAPI(`/investigations/${encodeURIComponent(workId)}/review`, {
+    method: "POST",
+    body: JSON.stringify({ status, outcome }),
+  });
+}
+
 export function useAnalyticsStates() {
   return useQuery({
     queryKey: ["analytics", "states"],
@@ -257,3 +264,136 @@ export function useRunPipeline() {
     }
   });
 }
+
+export interface CertificatePayload {
+  certificate_id: string;
+  block_number: number;
+  certificate_hash: string;
+  merkle_root: string;
+  previous_block_hash: string;
+  tamper_evident: boolean;
+  project_details: {
+    work_id: string;
+    work_category: string;
+    parliament_house: string;
+    state: string;
+    district: string;
+    constituency: string;
+    mp_name: string;
+    work_description: string;
+    scheme_title: string;
+    issuing_authority: string;
+  };
+  financial_ledger: {
+    sanction_amount: number;
+    sanction_amount_formatted: string;
+    amount_disbursed: number;
+    amount_disbursed_formatted: string;
+    unspent_balance: number;
+    unspent_balance_formatted: string;
+    utilization_rate: number;
+    financial_status: string;
+  };
+  timeline: {
+    recommended_date: string | null;
+    sanction_date: string | null;
+    execution_date: string | null;
+    completion_date: string | null;
+    lifecycle_coverage: string;
+    stages: Array<{
+      stage: string;
+      date: string;
+      status: string;
+    }>;
+  };
+  implementing_agency: {
+    agency_name: string;
+    jurisdiction: string;
+    primary_vendor: string;
+    vendor_count: number;
+    payment_count: number;
+    vendors: Array<{
+      vendor_name: string;
+      total_disbursed: number;
+      total_disbursed_formatted: string;
+      verification_status: string;
+    }>;
+  };
+  document_verification: {
+    missing_photo: boolean;
+    photo_status: string;
+    ocr_status: string;
+    data_completeness_pct: number;
+    ocr_checks: Array<{
+      check: string;
+      status: string;
+      confidence: string;
+    }>;
+  };
+  ai_risk_audit: {
+    risk_score: number;
+    risk_tier: string;
+    evidence_strength: string;
+    evidence_count: number;
+    anomalies: string[];
+  };
+  investigation_audit: {
+    investigation_status: string;
+    investigation_outcome: string;
+    audit_conclusion: string;
+    audit_seal: string;
+  };
+  officer_approval: {
+    approved_by: string;
+    officer_role: string;
+    designation: string;
+    jurisdiction: string;
+    department: string;
+    digital_thumbprint: string;
+    signature_algorithm: string;
+    approval_date: string;
+    seal_type: string;
+  };
+  blockchain_proof: {
+    certificate_id: string;
+    block_number: number;
+    certificate_hash: string;
+    previous_block_hash: string;
+    merkle_root: string;
+    ledger_name: string;
+    network_consensus: string;
+    timestamp_iso: string;
+    tamper_evident: boolean;
+    verification_endpoint: string;
+  };
+}
+
+export interface CertificateVerifyResult {
+  valid: boolean;
+  tamper_evident: boolean;
+  computed_hash: string;
+  submitted_hash: string;
+  integrity_score: number;
+  message: string;
+  block_number: number;
+  verified_at: string;
+}
+
+export function useWorkCertificate(workId?: string) {
+  return useQuery<CertificatePayload>({
+    queryKey: ["certificate", workId],
+    queryFn: () => fetchAPI(`/certificate?work_id=${encodeURIComponent(workId || "")}`),
+    enabled: !!workId,
+  });
+}
+
+export async function verifyCertificateAPI(workId: string, certificateHash: string): Promise<CertificateVerifyResult> {
+  return fetchAPI("/certificate/verify", {
+    method: "POST",
+    body: JSON.stringify({
+      work_id: workId,
+      certificate_hash: certificateHash,
+    }),
+  });
+}
+

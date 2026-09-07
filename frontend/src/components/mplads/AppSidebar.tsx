@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -44,9 +45,11 @@ export function AppSidebar({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
-
-  const item = (to: string, label: string, Icon: typeof LayoutDashboard) => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);  const item = (to: string, label: string, Icon: typeof LayoutDashboard) => {
     const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
     return (
       <Link
@@ -102,17 +105,17 @@ export function AppSidebar({
           )}
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-navy-soft text-xs font-semibold text-navy">
-            {user?.avatar_initials || "MP"}
+            {mounted ? (user?.avatar_initials || "MP") : "MP"}
           </span>
           {!collapsed && (
             <span className="min-w-0 leading-tight">
               <span className="block truncate text-sm font-medium text-foreground">
-                {user?.name || "Official User"}
+                {mounted ? (user?.name || "Official User") : "Official User"}
               </span>
               <span className="block truncate text-[11px] text-muted-foreground font-medium">
-                {user?.role_title || "District Authority"}
+                {mounted ? (user?.role_title || "District Authority") : "District Authority"}
               </span>
-              {user?.assigned_scope && (
+              {(mounted && user?.assigned_scope) && (
                 <span className="block truncate text-[10px] text-primary font-semibold">
                   → {user.assigned_scope}
                 </span>

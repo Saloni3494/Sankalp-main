@@ -29,3 +29,18 @@ class LoginResponse(BaseModel):
     token: str
     token_type: str = "bearer"
     user: UserResponse
+
+class CertificateVerifyRequest(BaseModel):
+    work_id: str
+    certificate_hash: str
+
+class CertificateVerifyResponse(BaseModel):
+    valid: bool
+    tamper_evident: bool
+    computed_hash: str
+    submitted_hash: str
+    integrity_score: int
+    message: str
+    block_number: int
+    verified_at: str
+

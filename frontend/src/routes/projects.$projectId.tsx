@@ -1,11 +1,13 @@
+import React, { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Clock, MapPin, Building, Calendar, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, MapPin, Building, Calendar, AlertTriangle, Award, Lock, ShieldCheck } from "lucide-react";
 import { PageHeader, SectionCard } from "@/components/mplads/PageHeader";
 import { RiskBadge, StatusBadge } from "@/components/mplads/badges";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useWorkDetails, useWorkInvestigation } from "@/lib/api";
 import { RecommendedNextAction, AgenticOrchestrator, RiskGenome, AuditTimeMachine, RiskRelationshipGraph } from "@/components/mplads/InvestigationFeatures";
+import { BlockchainCertificateModal } from "@/components/mplads/BlockchainCertificateModal";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params: { projectId } }) => {
@@ -18,6 +20,7 @@ function ProjectDetail() {
   const { projectId } = Route.useLoaderData();
   const { data, isLoading, error } = useWorkDetails(projectId);
   const { data: investigation, isLoading: invLoading } = useWorkInvestigation(projectId);
+  const [certModalOpen, setCertModalOpen] = useState(false);
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading details...</div>;
   if (error || !data) return <div className="p-8 text-center text-danger">Failed to load project details.</div>;
@@ -82,6 +85,15 @@ function ProjectDetail() {
         subtitle={`Project ID: ${project.id} • ${project.category}`}
         actions={
           <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 font-medium text-xs shadow-sm cursor-pointer"
+              onClick={() => setCertModalOpen(true)}
+            >
+              <Award className="size-4 text-emerald-600 dark:text-emerald-400" />
+              🔗 Blockchain Certificate
+            </Button>
             <RiskBadge level={project.risk as any} />
             <StatusBadge status={project.status as any} />
           </div>
@@ -90,7 +102,7 @@ function ProjectDetail() {
 
       <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-5">
-          <RecommendedNextAction data={investigation} isLoading={invLoading} />
+          <RecommendedNextAction data={investigation} isLoading={invLoading} workId={projectId} status={project.status} outcome={data?.investigation_outcome} />
           
           <SectionCard title="Financial Overview">
             <div className="grid grid-cols-3 gap-4">
@@ -194,6 +206,34 @@ function ProjectDetail() {
             </div>
           </SectionCard>
 
+          <SectionCard
+            title="Blockchain Certificate"
+            className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 via-primary/5 to-transparent shadow-sm"
+          >
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                  <ShieldCheck className="size-4 text-emerald-600" />
+                  GovChain Sovereign Ledger
+                </span>
+                <span className="rounded bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+                  Tamper-Evident
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Official cryptographically-signed digital certificate with SHA-256 block hash, Merkle root proof, and 9 statutory audit pillars.
+              </p>
+              <Button
+                size="sm"
+                className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs shadow cursor-pointer"
+                onClick={() => setCertModalOpen(true)}
+              >
+                <Award className="size-4" />
+                View &amp; Verify Certificate
+              </Button>
+            </div>
+          </SectionCard>
+
           <RiskGenome data={investigation} isLoading={invLoading} />
           <AgenticOrchestrator data={investigation} isLoading={invLoading} />
         </div>
@@ -203,6 +243,12 @@ function ProjectDetail() {
            <RiskRelationshipGraph data={investigation} isLoading={invLoading} />
         </div>
       </div>
+
+      <BlockchainCertificateModal
+        workId={project.id}
+        isOpen={certModalOpen}
+        onClose={() => setCertModalOpen(false)}
+      />
     </div>
   );
 }

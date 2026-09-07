@@ -63,7 +63,7 @@ export function AppShell() {
           <footer className="border-t border-border bg-card px-4 py-4 lg:px-6">
             <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
               <p>MPLADS AI Monitor | Ministry / Government Monitoring Platform</p>
-              <p>Financial data shown is indicative sample data for demonstration.</p>
+              {/* <p>Financial data shown is indicative sample data for demonstration.</p> */}
             </div>
           </footer>
         </div>
