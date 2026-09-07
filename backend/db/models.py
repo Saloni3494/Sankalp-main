@@ -84,3 +84,22 @@ class Vendor(Base):
     raw_name = Column(String, index=True)
     normalized_name = Column(String, index=True)
     resolution_confidence = Column(Float, default=1.0)
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    salt = Column(String)
+    name = Column(String)
+    role = Column(String, default="district_authority")
+    role_title = Column(String, default="District Authority")
+    assigned_scope = Column(String, default="Assigned District")
+    designation = Column(String)
+    jurisdiction = Column(String)
+    department = Column(String)
+    avatar_initials = Column(String, default="MP")
+    created_at = Column(DateTime, default=datetime.utcnow)
+

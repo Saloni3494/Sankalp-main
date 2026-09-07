@@ -1,15 +1,34 @@
-import { useState } from "react";
-import { Outlet } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "./AppSidebar";
 import { TopHeader } from "./TopHeader";
 import { FilterProvider } from "@/lib/filters";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && pathname !== "/login") {
+      navigate({ to: "/login" });
+    }
+  }, [isLoading, isAuthenticated, pathname, navigate]);
+
+  if (pathname === "/login") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
+
     <FilterProvider>
       <div className="flex min-h-screen bg-background">
         {/* Desktop / tablet sidebar */}

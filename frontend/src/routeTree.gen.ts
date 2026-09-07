@@ -16,6 +16,7 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as FundUtilizationRouteImport } from './routes/fund-utilization'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -57,6 +58,11 @@ const FundUtilizationRoute = FundUtilizationRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/compliance': typeof ComplianceRoute
   '/fund-utilization': typeof FundUtilizationRoute
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/compliance': typeof ComplianceRoute
   '/fund-utilization': typeof FundUtilizationRoute
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
   '/risk': typeof RiskRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/compliance': typeof ComplianceRoute
   '/fund-utilization': typeof FundUtilizationRoute
   '/help': typeof HelpRoute
+  '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/fund-utilization'
     | '/help'
+    | '/login'
     | '/profile'
     | '/projects'
     | '/reports'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/fund-utilization'
     | '/help'
+    | '/login'
     | '/profile'
     | '/reports'
     | '/risk'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/fund-utilization'
     | '/help'
+    | '/login'
     | '/profile'
     | '/projects'
     | '/reports'
@@ -201,6 +213,7 @@ export interface RootRouteChildren {
   ComplianceRoute: typeof ComplianceRoute
   FundUtilizationRoute: typeof FundUtilizationRoute
   HelpRoute: typeof HelpRoute
+  LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   ReportsRoute: typeof ReportsRoute
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -333,6 +353,7 @@ const rootRouteChildren: RootRouteChildren = {
   ComplianceRoute: ComplianceRoute,
   FundUtilizationRoute: FundUtilizationRoute,
   HelpRoute: HelpRoute,
+  LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   ReportsRoute: ReportsRoute,

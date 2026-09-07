@@ -1,16 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_BASE = "http://localhost:8000";
+export const API_BASE = "http://localhost:8000";
 const API_KEY = "sankalp-admin-key";
 
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("sankalp_auth_token");
+}
+
 export async function fetchAPI(endpoint: string, options?: RequestInit) {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    "X-API-Key": API_KEY,
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((options?.headers as Record<string, string>) || {}),
+  };
+
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
-    headers: {
-      "X-API-Key": API_KEY,
-      "Content-Type": "application/json",
-      ...(options?.headers || {}),
-    },
+    headers,
   });
   if (!res.ok) {
     let err = "Network response was not ok";
@@ -22,6 +31,55 @@ export async function fetchAPI(endpoint: string, options?: RequestInit) {
   }
   return res.json();
 }
+
+export async function loginAPI(credentials: { username_or_email: string; password: string }) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
+    body: JSON.stringify(credentials),
+  });
+  if (!res.ok) {
+    let err = "Authentication failed";
+    try {
+      const data = await res.json();
+      if (data.detail) err = data.detail;
+    } catch {}
+    throw new Error(err);
+  }
+  return res.json();
+}
+
+export async function getMeAPI(token: string) {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-API-Key": API_KEY,
+    },
+  });
+  if (!res.ok) throw new Error("Unauthorized");
+  return res.json();
+}
+
+export async function getDemoUsersAPI() {
+  const res = await fetch(`${API_BASE}/auth/demo-users`, {
+    headers: { "X-API-Key": API_KEY },
+  });
+  if (!res.ok) throw new Error("Failed to load demo accounts");
+  return res.json();
+}
+
+export async function logoutAPI(token?: string | null) {
+  try {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "X-API-Key": API_KEY,
+      },
+    });
+  } catch {}
+}
+
 
 export function useDashboardSummary() {
   return useQuery({

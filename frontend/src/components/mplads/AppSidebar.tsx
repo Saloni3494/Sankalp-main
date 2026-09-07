@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoWordmark } from "./Logo";
+import { useAuth } from "@/lib/auth-context";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -42,6 +43,8 @@ export function AppSidebar({
   onToggle: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useAuth();
+
 
   const item = (to: string, label: string, Icon: typeof LayoutDashboard) => {
     const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
@@ -99,12 +102,21 @@ export function AppSidebar({
           )}
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-navy-soft text-xs font-semibold text-navy">
-            SR
+            {user?.avatar_initials || "MP"}
           </span>
           {!collapsed && (
             <span className="min-w-0 leading-tight">
-              <span className="block truncate text-sm font-medium text-foreground">S. Ranganathan</span>
-              <span className="block truncate text-[11px] text-muted-foreground">Nodal Officer, MPLADS</span>
+              <span className="block truncate text-sm font-medium text-foreground">
+                {user?.name || "Official User"}
+              </span>
+              <span className="block truncate text-[11px] text-muted-foreground font-medium">
+                {user?.role_title || "District Authority"}
+              </span>
+              {user?.assigned_scope && (
+                <span className="block truncate text-[10px] text-primary font-semibold">
+                  → {user.assigned_scope}
+                </span>
+              )}
             </span>
           )}
         </Link>

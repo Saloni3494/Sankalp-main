@@ -43,7 +43,7 @@ This guide provides step-by-step instructions for deploying the **Sankalp MPLADS
    - **Framework Preset**: `Other` (or auto-detected Vite)
    - **Build Command**: `NITRO_PRESET=vercel npm run build`
    - **Output Directory**: `.vercel/output`
-5. Add **Environment Variables**:
+5. Add **Environment Variables**:   
    - `VITE_API_BASE_URL`: `https://sankalp-backend.onrender.com` (Your Render backend URL)
    - `NITRO_PRESET`: `vercel`
 6. Click **Deploy**.

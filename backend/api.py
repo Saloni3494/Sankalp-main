@@ -1,24 +1,22 @@
 """
 FastAPI backend for MPLADS Sentinel.
 """
-import json, os
+import json, os, hashlib, secrets
 from typing import Optional, List
 from dotenv import load_dotenv
 load_dotenv()
-from fastapi import FastAPI, HTTPException, Query, Depends, Security
+from fastapi import FastAPI, HTTPException, Query, Depends, Security, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import APIKeyHeader
+from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 
-from db.database import get_db, engine, Base
-from db.models import Work, Payment, InvestigationStatus, InvestigationOutcome
-from schemas import ReviewRequest
+from db.database import get_db, engine, Base, SessionLocal
+from db.models import Work, Payment, InvestigationStatus, InvestigationOutcome, User
+from schemas import ReviewRequest, LoginRequest, UserResponse, LoginResponse
 
 # Ensure DB is created
 Base.metadata.create_all(bind=engine)
-
-import os
 
 app = FastAPI(title="MPLADS Sentinel API")
 
@@ -36,7 +34,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 def get_api_key(api_key: str = Security(api_key_header)):
@@ -44,6 +41,180 @@ def get_api_key(api_key: str = Security(api_key_header)):
     if api_key != "sankalp-admin-key":
         raise HTTPException(status_code=403, detail="Invalid or missing API Key")
     return api_key
+
+# --- AUTHENTICATION & SECURITY ---
+ACTIVE_SESSIONS: dict[str, int] = {}
+bearer_scheme = HTTPBearer(auto_error=False)
+
+def hash_password(password: str, salt: str = None) -> tuple[str, str]:
+    if not salt:
+        salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000).hex()
+    return pwd_hash, salt
+
+def verify_password(password: str, salt: str, hashed: str) -> bool:
+    pwd_hash, _ = hash_password(password, salt)
+    return secrets.compare_digest(pwd_hash, hashed)
+
+def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme), db: Session = Depends(get_db)) -> Optional[User]:
+    if not credentials:
+        return None
+    token = credentials.credentials
+    user_id = ACTIVE_SESSIONS.get(token)
+    if not user_id:
+        return None
+    return db.query(User).filter(User.id == user_id).first()
+
+DEMO_ACCOUNTS = [
+    {
+        "username": "mospi_auditor",
+        "email": "auditor@mospi.gov.in",
+        "password": "auditor123",
+        "name": "Dr. Priya Deshmukh",
+        "role": "mospi_auditor",
+        "role_title": "MoSPI Auditor",
+        "assigned_scope": "All India",
+        "designation": "Central Compliance & Vigilance Auditor, MoSPI",
+        "jurisdiction": "All India (All States & UTs)",
+        "department": "Ministry of Statistics & Programme Implementation",
+        "avatar_initials": "MA"
+    },
+    {
+        "username": "state_nodal",
+        "email": "state.nodal@gov.in",
+        "password": "state123",
+        "name": "K. Vijayalakshmi, IAS",
+        "role": "state_nodal_authority",
+        "role_title": "State Nodal Authority",
+        "assigned_scope": "Assigned State",
+        "designation": "State Nodal Officer & Secretary (Planning)",
+        "jurisdiction": "Assigned State: Maharashtra",
+        "department": "State Planning & Development Department",
+        "avatar_initials": "SN"
+    },
+    {
+        "username": "district_authority",
+        "email": "district.authority@mplads.gov.in",
+        "password": "district123",
+        "name": "S. Ranganathan, IAS",
+        "role": "district_authority",
+        "role_title": "District Authority",
+        "assigned_scope": "Assigned District",
+        "designation": "District Collector & District Authority",
+        "jurisdiction": "Assigned District: South Delhi",
+        "department": "District Collectorate & Planning Cell",
+        "avatar_initials": "DA"
+    },
+    {
+        "username": "mp_representative",
+        "email": "mp.rep@sansad.nic.in",
+        "password": "mp123",
+        "name": "Rajesh Sharma, MP Delegate",
+        "role": "mp_representative",
+        "role_title": "MP Representative",
+        "assigned_scope": "Assigned MP / relevant works",
+        "designation": "Member of Parliament Representative",
+        "jurisdiction": "Assigned MP: Rajesh Sharma (Lok Sabha - Patna Sahib)",
+        "department": "Parliament of India (Sansad)",
+        "avatar_initials": "MP"
+    }
+]
+
+def seed_users_if_needed(db: Session):
+    try:
+        db.execute(text("ALTER TABLE users ADD COLUMN role_title VARCHAR"))
+    except Exception:
+        pass
+    try:
+        db.execute(text("ALTER TABLE users ADD COLUMN assigned_scope VARCHAR"))
+    except Exception:
+        pass
+    db.commit()
+
+    for acc in DEMO_ACCOUNTS:
+        existing = db.query(User).filter((User.email == acc["email"]) | (User.username == acc["username"])).first()
+        pwd_hash, salt = hash_password(acc["password"])
+        if not existing:
+            user = User(
+                username=acc["username"],
+                email=acc["email"],
+                hashed_password=pwd_hash,
+                salt=salt,
+                name=acc["name"],
+                role=acc["role"],
+                role_title=acc["role_title"],
+                assigned_scope=acc["assigned_scope"],
+                designation=acc["designation"],
+                jurisdiction=acc["jurisdiction"],
+                department=acc["department"],
+                avatar_initials=acc["avatar_initials"]
+            )
+            db.add(user)
+        else:
+            existing.name = acc["name"]
+            existing.role = acc["role"]
+            existing.role_title = acc["role_title"]
+            existing.assigned_scope = acc["assigned_scope"]
+            existing.designation = acc["designation"]
+            existing.jurisdiction = acc["jurisdiction"]
+            existing.department = acc["department"]
+            existing.avatar_initials = acc["avatar_initials"]
+            existing.hashed_password = pwd_hash
+            existing.salt = salt
+    db.commit()
+
+# Seed default users
+try:
+    with SessionLocal() as _db:
+        seed_users_if_needed(_db)
+except Exception as e:
+    print(f"Error seeding demo users: {e}")
+
+@app.post("/auth/login", response_model=LoginResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    ident = payload.username_or_email.strip().lower()
+    user = db.query(User).filter(
+        (func.lower(User.email) == ident) | (func.lower(User.username) == ident)
+    ).first()
+    
+    if not user or not verify_password(payload.password, user.salt, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid government email/username or password. Please verify your credentials."
+        )
+    
+    token = f"sankalp_sec_{secrets.token_urlsafe(32)}"
+    ACTIVE_SESSIONS[token] = user.id
+    
+    return LoginResponse(
+        token=token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user)
+    )
+
+@app.get("/auth/me", response_model=UserResponse)
+def get_me(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme), db: Session = Depends(get_db)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication token required")
+    token = credentials.credentials
+    user_id = ACTIVE_SESSIONS.get(token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Session expired or invalid token")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found")
+    return UserResponse.model_validate(user)
+
+@app.get("/auth/demo-users")
+def get_demo_users():
+    return DEMO_ACCOUNTS
+
+@app.post("/auth/logout")
+def logout(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)):
+    if credentials and credentials.credentials in ACTIVE_SESSIONS:
+        del ACTIVE_SESSIONS[credentials.credentials]
+    return {"status": "logged_out", "message": "Session successfully terminated"}
+
 
 @app.get("/")
 def root():

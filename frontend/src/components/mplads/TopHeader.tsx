@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Bell, Check, Menu, Search, ChevronRight, Activity } from "lucide-react";
+import { Bell, Check, Menu, Search, ChevronRight, Activity, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,6 +24,7 @@ import { riskColor } from "./badges";
 import { cn } from "@/lib/utils";
 import { VoiceAssistant } from "./VoiceAssistant";
 import { GoogleTranslate } from "./GoogleTranslate";
+import { useAuth } from "@/lib/auth-context";
 
 const TITLES: Record<string, { title: string; crumb: string }> = {
   "/": { title: "Dashboard", crumb: "MPLADS Overview" },
@@ -38,12 +39,14 @@ const TITLES: Record<string, { title: string; crumb: string }> = {
   "/settings": { title: "Settings", crumb: "Preferences" },
   "/help": { title: "Help", crumb: "Guidance" },
   "/profile": { title: "User Profile", crumb: "Account" },
+  "/login": { title: "Secure Login", crumb: "Authentication" },
 };
 
 export function TopHeader({ onMenu }: { onMenu: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { filters, setFilter, reset, activeCount } = useFilters();
+  const { user, logout } = useAuth();
   const [query, setQuery] = useState("");
   const [read, setRead] = useState(false);
 
@@ -177,26 +180,52 @@ export function TopHeader({ onMenu }: { onMenu: () => void }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-9 items-center justify-center rounded-full bg-navy-soft text-xs font-semibold text-navy">
-              SR
+            <button className="flex size-9 items-center justify-center rounded-full bg-navy-soft text-xs font-semibold text-navy hover:ring-2 hover:ring-primary/20 transition-all">
+              {user?.avatar_initials || "MP"}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel>
-              <span className="block text-sm">S. Ranganathan</span>
-              <span className="block text-[11px] font-normal text-muted-foreground">
-                Nodal Officer, MPLADS Division
+              <div className="flex items-center justify-between gap-1">
+                <span className="block text-sm font-semibold truncate">{user?.name || "Official User"}</span>
+                <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary shrink-0">
+                  {user?.role_title || "Officer"}
+                </span>
+              </div>
+              {user?.assigned_scope && (
+                <span className="block text-[10px] font-semibold text-primary mt-0.5">
+                  → {user.assigned_scope}
+                </span>
+              )}
+              <span className="block text-[11px] font-normal text-muted-foreground truncate mt-0.5">
+                {user?.designation || "MPLADS Division"}
               </span>
+              {user?.jurisdiction && (
+                <span className="block text-[10px] text-muted-foreground/80 truncate font-mono mt-0.5">
+                  📍 {user.jurisdiction}
+                </span>
+              )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to="/profile">User Profile</Link>
+              <Link to="/profile" className="cursor-pointer">User Profile & ID</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/settings">Settings</Link>
+              <Link to="/settings" className="cursor-pointer">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/help">Help & Guidance</Link>
+              <Link to="/help" className="cursor-pointer">Help & Guidance</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={async () => {
+                await logout();
+                navigate({ to: "/login" });
+              }}
+              className="text-red-500 focus:text-red-500 focus:bg-red-500/10 cursor-pointer"
+            >
+              <LogOut className="mr-2 size-4" />
+              <span>Log Out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
