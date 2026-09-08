@@ -25,7 +25,13 @@ function ProjectDetail() {
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading details...</div>;
   if (error || !data) return <div className="p-8 text-center text-danger">Failed to load project details.</div>;
 
-  const evidenceList: string[] = Array.isArray(data.evidence) ? data.evidence.map(String) : [];
+  const evidenceList: string[] = Array.isArray(data.evidence) ? data.evidence.map((e: any) => {
+    if (typeof e === 'string') return e;
+    if (e && typeof e === 'object') {
+      return e.description || e.type || e.name || JSON.stringify(e);
+    }
+    return String(e);
+  }) : [];
 
   const formatDate = (d: string | null | undefined) => {
     if (!d) return "N/A";

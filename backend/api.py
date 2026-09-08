@@ -8,10 +8,11 @@ load_dotenv()
 from fastapi import FastAPI, HTTPException, Query, Depends, Security, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
-
+from sqlalchemy import func, text, case
 from datetime import datetime
+from pydantic import BaseModel
 from db.database import get_db, engine, Base, SessionLocal
 from db.models import Work, Payment, InvestigationStatus, InvestigationOutcome, User
 from schemas import (
@@ -339,7 +340,7 @@ def investigate_work(work_id: str, house: Optional[str] = None, db: Session = De
         if v_name:
             vendor_totals[v_name] = vendor_totals.get(v_name, 0) + (v_amount or 0)
 
-    evidence_list = w.evidence if isinstance(w.evidence, list) else []
+    evidence_list = json.loads(w.evidence) if isinstance(w.evidence, str) and w.evidence.startswith('[') else (w.evidence if isinstance(w.evidence, list) else [])
 
     context = {
         "work_id": w.work_id,
@@ -428,7 +429,7 @@ Return ONLY valid JSON. No markdown, no explanation."""
             "source": "fallback-rule-based",
             "recommended_action": {
                 "title": "Review flagged evidence" if evidence_list else "No action needed",
-                "reason": evidence_list[0] if evidence_list else "Project has no risk flags.",
+                "reason": (evidence_list[0].get("description", str(evidence_list[0])) if isinstance(evidence_list[0], dict) else str(evidence_list[0])) if evidence_list else "Project has no risk flags.",
                 "priority": "High" if w.risk_score >= 60 else "Medium" if w.risk_score >= 30 else "Low"
             },
             "risk_genome": [
@@ -448,7 +449,7 @@ Return ONLY valid JSON. No markdown, no explanation."""
                 {"name": "Documentation Check", "status": "Needs Evidence" if has_missing else "Completed"},
                 {"name": "Investigation Brief", "status": "Pending"}
             ],
-            "investigation_brief": f"Project {w.work_id} in {w.state} has a risk score of {w.risk_score}. {'Evidence flags: ' + ', '.join(evidence_list[:3]) + '.' if evidence_list else 'No anomalies detected.'}",
+            "investigation_brief": f"Project {w.work_id} in {w.state} has a risk score of {w.risk_score}. {'Evidence flags: ' + ', '.join([e.get('description', str(e)) if isinstance(e, dict) else str(e) for e in evidence_list[:3]]) + '.' if evidence_list else 'No anomalies detected.'}",
             "primary_risk_dimensions": "Rule-based fallback - Groq API unavailable.",
             "vendors": [{"name": k, "total_paid": v} for k, v in vendor_totals.items()],
             "mp_name": w.mp_name,
@@ -475,7 +476,7 @@ def get_work(work_id: str, house: Optional[str] = None, db: Session = Depends(ge
         "constituency": work.constituency,
         "work_description": work.work_description,
         "risk_score": work.risk_score,
-        "evidence": work.evidence,
+        "evidence": json.loads(work.evidence) if isinstance(work.evidence, str) and work.evidence.startswith('[') else (work.evidence if isinstance(work.evidence, list) else []),
         "amount_disbursed": work.amount_disbursed,
         "sanction_amount": work.sanction_amount,
         "recommended_date": work.recommended_date,
@@ -548,8 +549,34 @@ def get_risk_work(work_id: str, house: Optional[str] = None, db: Session = Depen
 
 @app.get("/analytics/states")
 def get_analytics_states(db: Session = Depends(get_db)):
-    query = db.query(Work.state, func.count(Work.id), func.avg(Work.risk_score)).group_by(Work.state).all()
-    return [{"state": r[0], "count": r[1], "avg_risk": r[2]} for r in query if r[0]]
+    query = db.query(
+        Work.state,
+        func.count(Work.id),
+        func.avg(Work.risk_score),
+        func.sum(case((Work.risk_score >= 60, 1), else_=0))
+    ).group_by(Work.state).all()
+    
+    result = []
+    for r in query:
+        if not r[0]: continue
+        avg_r = r[2] or 0
+        high_risk_works = r[3] or 0
+        
+        if high_risk_works >= 30:
+            risk_level = "High"
+        elif high_risk_works >= 10:
+            risk_level = "Medium"
+        else:
+            risk_level = "Low"
+            
+        result.append({
+            "state": r[0],
+            "count": r[1],
+            "avg_risk": avg_r,
+            "high_risk_works": high_risk_works,
+            "risk_level": risk_level
+        })
+    return sorted(result, key=lambda x: x["high_risk_works"], reverse=True)
 
 @app.get("/analytics/funds")
 def get_analytics_funds(house: Optional[str] = Query(None), db: Session = Depends(get_db)):
@@ -646,7 +673,7 @@ def get_analytics_insights(house: Optional[str] = Query(None), db: Session = Dep
         if (w.evidence_count or 0) >= 2:
             strong_evidence_works += 1
             
-        evidences = w.evidence if isinstance(w.evidence, list) else []
+        evidences = json.loads(w.evidence) if isinstance(w.evidence, str) and w.evidence.startswith('[') else (w.evidence if isinstance(w.evidence, list) else [])
         for e in evidences:
             e_lower = str(e).lower()
             if "amount" in e_lower or "value" in e_lower or "utilized" in e_lower:
@@ -664,13 +691,21 @@ def get_analytics_insights(house: Optional[str] = Query(None), db: Session = Dep
     top_works = sorted([w for w in works if w.risk_score > 0], key=lambda x: x.risk_score, reverse=True)[:15]
     top_works_data = []
     for w in top_works:
+        top_factors = []
+        if isinstance(w.evidence, list):
+            for e in w.evidence[:2]:
+                if isinstance(e, dict):
+                    top_factors.append(e.get("description", str(e)))
+                else:
+                    top_factors.append(str(e))
+
         top_works_data.append({
             "work_id": w.work_id,
             "house": w.parliament_house,
             "risk_score": w.risk_score,
             "evidence_count": w.evidence_count,
             "data_completeness": w.data_completeness,
-            "top_factors": w.evidence[:2] if isinstance(w.evidence, list) else []
+            "top_factors": top_factors
         })
 
     signal_array = [{"name": k, "count": v} for k, v in signals.items() if v > 0]
@@ -741,7 +776,7 @@ def get_analytics_compliance(house: Optional[str] = Query(None), db: Session = D
             stats["missing_evidence"] += 1
             stats["data_quality"]["Photo Availability"] += 1
             
-        evidences = w.evidence if isinstance(w.evidence, list) else []
+        evidences = json.loads(w.evidence) if isinstance(w.evidence, str) and w.evidence.startswith('[') else (w.evidence if isinstance(w.evidence, list) else [])
         has_rule_exception = False
         exception_types = []
         
@@ -839,58 +874,73 @@ def get_analytics_dashboard(house: Optional[str] = Query(None), db: Session = De
         else:
             risk_dist["Safe"] += 1
 
-        evidence_list = w.evidence if isinstance(w.evidence, list) else []
-        has_timeline = False
-        has_financial = False
-        has_compliance = False
-        has_vendor = False
+        # Only aggregate risk factors for flagged works
+        if w.risk_score > 0:
+            evidence_list = json.loads(w.evidence) if isinstance(w.evidence, str) and w.evidence.startswith('[') else (w.evidence if isinstance(w.evidence, list) else [])
+            has_timeline = False
+            has_financial = False
+            has_compliance = False
+            has_vendor = False
 
-        top_evidence = ""
-        for e in evidence_list:
-            e_str = str(e).lower()
-            risk_factors[e] = risk_factors.get(e, 0) + 1
-            if not top_evidence:
-                top_evidence = str(e)
+            top_evidence = ""
+            for e in evidence_list:
+                if isinstance(e, dict):
+                    e_key = e.get("type", "Unknown")
+                    e_desc = e.get("description", str(e))
+                    e_str = (e_key + " " + e_desc).lower()
+                else:
+                    e_key = str(e)
+                    e_desc = str(e)
+                    e_str = str(e).lower()
+                    
+                risk_factors[e_key] = risk_factors.get(e_key, 0) + 1
+                if not top_evidence:
+                    top_evidence = e_desc
+                
+                if "date" in e_str or "timeline" in e_str or "before" in e_str or "after" in e_str or "impossible" in e_str:
+                    has_timeline = True
+                if "exceeds" in e_str or "amount" in e_str or "cost" in e_str or "financial" in e_str or "negative" in e_str:
+                    has_financial = True
+                if "compliance" in e_str or "missing" in e_str or "bypass" in e_str:
+                    has_compliance = True
+                if "vendor" in e_str or "execution" in e_str or "payment" in e_str:
+                    has_vendor = True
             
-            if "date" in e_str or "timeline" in e_str or "before" in e_str or "after" in e_str or "impossible" in e_str:
-                has_timeline = True
-            if "exceeds" in e_str or "amount" in e_str or "cost" in e_str or "financial" in e_str or "negative" in e_str:
-                has_financial = True
-            if "compliance" in e_str or "missing" in e_str or "bypass" in e_str:
-                has_compliance = True
-            if "vendor" in e_str or "execution" in e_str or "payment" in e_str:
-                has_vendor = True
-        
-        if has_timeline: categories["Timeline Anomalies"] += 1
-        if has_financial: categories["Financial Irregularities"] += 1
-        if has_compliance: categories["Compliance Exceptions"] += 1
-        if has_vendor: categories["Vendor/Execution Risks"] += 1
+            if has_timeline: categories["Timeline Anomalies"] += 1
+            if has_financial: categories["Financial Irregularities"] += 1
+            if has_compliance: categories["Compliance Exceptions"] += 1
+            if has_vendor: categories["Vendor/Execution Risks"] += 1
 
-        if w.risk_score >= 60:
-            alerts.append({
-                "id": w.work_id,
-                "projectId": w.work_id,
-                "title": top_evidence or "High risk detected",
-                "project": w.work_description or w.work_id,
-                "level": "High",
-                "confidence": min(99, int(w.risk_score)),
-                "action": "Investigate",
-                "facts": [
-                    {"label": "State", "value": w.state},
-                    {"label": "Completeness", "value": f"{int((w.data_completeness or 0)*100)}%"}
-                ]
-            })
+            if w.risk_score >= 60:
+                alerts.append({
+                    "id": w.work_id,
+                    "projectId": w.work_id,
+                    "title": top_evidence or "High risk detected",
+                    "project": w.work_description or w.work_id,
+                    "level": "High",
+                    "confidence": min(99, int(w.risk_score)),
+                    "action": "Investigate",
+                    "facts": [
+                        {"label": "State", "value": w.state},
+                        {"label": "Completeness", "value": f"{int((w.data_completeness or 0)*100)}%"}
+                    ]
+                })
 
     total = max(len(works), 1)
+    flagged_total = max(total - risk_dist["Safe"], 1)
+
+    def pct(val, tot):
+        return round((val / tot) * 100, 2)
+
     dist_chart = [
-        {"name": "Safe", "value": round(risk_dist["Safe"]/total*100), "color": "#2F6B3F"},
-        {"name": "Low risk", "value": round(risk_dist["Low risk"]/total*100), "color": "#fcd34d"},
-        {"name": "Medium risk", "value": round(risk_dist["Medium risk"]/total*100), "color": "#fb923c"},
-        {"name": "High risk", "value": round(risk_dist["High risk"]/total*100), "color": "#C94F22"},
+        {"name": "Safe", "value": pct(risk_dist["Safe"], total), "color": "#2F6B3F"},
+        {"name": "Low risk", "value": pct(risk_dist["Low risk"], total), "color": "#fcd34d"},
+        {"name": "Medium risk", "value": pct(risk_dist["Medium risk"], total), "color": "#fb923c"},
+        {"name": "High risk", "value": pct(risk_dist["High risk"], total), "color": "#C94F22"},
     ]
 
     sorted_factors = sorted(risk_factors.items(), key=lambda x: x[1], reverse=True)[:5]
-    factors_chart = [{"name": k, "value": round(v/total*100)} for k, v in sorted_factors]
+    factors_chart = [{"name": k, "value": round((v/flagged_total)*100, 2)} for k, v in sorted_factors]
 
     alerts = sorted(alerts, key=lambda x: x["confidence"], reverse=True)[:5]
 
@@ -932,7 +982,7 @@ def get_analytics_state_summary(state_name: str, house: Optional[str] = Query(No
     all_evidence: dict[str, int] = {}
 
     for w in works:
-        evidences = w.evidence if isinstance(w.evidence, list) else []
+        evidences = json.loads(w.evidence) if isinstance(w.evidence, str) and w.evidence.startswith('[') else (w.evidence if isinstance(w.evidence, list) else [])
         if any("before" in str(e).lower() or "after" in str(e).lower() for e in evidences):
             delayed += 1
         if w.missing_photo:
@@ -1213,7 +1263,7 @@ def generate_blockchain_certificate_payload(w: Work, db: Session, current_user: 
     # Pillar 6: AI Risk Score + Evidence Strength
     risk_tier = "CRITICAL" if risk_val >= 70 else ("HIGH" if risk_val >= 50 else ("MEDIUM" if risk_val >= 25 else "LOW / CLEAR"))
     evidence_strength = "High Anomaly Confidence" if risk_val >= 60 else ("Moderate Forensic Indicators" if risk_val >= 30 else "Normal Baseline")
-    evidence_list = w.evidence if isinstance(w.evidence, list) else []
+    evidence_list = json.loads(w.evidence) if isinstance(w.evidence, str) and w.evidence.startswith('[') else (w.evidence if isinstance(w.evidence, list) else [])
     ai_risk_audit = {
         "risk_score": round(risk_val, 1),
         "risk_tier": risk_tier,

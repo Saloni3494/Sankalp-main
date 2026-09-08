@@ -25,7 +25,7 @@ WEIGHTS = {
 LS_FILENAMES = {
     "recommended": "Works Recommended.csv",
     "sanctioned": "Works Sanctioned.csv",
-    "completed": "Works Completed.csv",
+    "completed": "Works_Completed_UPDATED.csv",
     "expenditure": "Expenditure on Completed and On-going Works as on Date.csv",
     "allocation": "Allocated Limit for Honble MPs.csv",
     "calamity": "Amount consented for Calamity.csv",
@@ -34,7 +34,7 @@ LS_FILENAMES = {
 RS_FILENAMES = {
     "recommended": "Works Recommended.csv",
     "sanctioned": "Works Sanctioned.csv",
-    "completed": "Works Completed.csv",
+    "completed": "Works_Completed_UPDATED.csv",
     "expenditure": "Expenditure on Completed and On-going Works as on Date.csv",
     "allocation": "Allocated Limit for Honble MPs.csv",
     "calamity": "Amount consented for Calamity.csv",

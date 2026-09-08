@@ -9,7 +9,12 @@ export const Route = createFileRoute("/analytics")({
   component: AnalyticsPage,
 });
 
+import { useAnalyticsStates } from "@/lib/api";
+import { Loader2 } from "lucide-react";
+
 function AnalyticsPage() {
+  const { data: states, isLoading } = useAnalyticsStates();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -27,32 +32,34 @@ function AnalyticsPage() {
               Distribution of investigation risk across states. High-risk areas require immediate attention.
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-secondary/50 border-b border-border font-medium">
-                  <tr>
-                    <th className="px-4 py-3">State</th>
-                    <th className="px-4 py-3">Risk Level</th>
-                    <th className="px-4 py-3">High-Risk Works</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  <tr className="hover:bg-secondary/50 cursor-pointer transition-colors">
-                    <td className="px-4 py-3 font-medium">Maharashtra</td>
-                    <td className="px-4 py-3"><span className="text-danger font-bold">High</span></td>
-                    <td className="px-4 py-3">45</td>
-                  </tr>
-                  <tr className="hover:bg-secondary/50 cursor-pointer transition-colors">
-                    <td className="px-4 py-3 font-medium">Uttar Pradesh</td>
-                    <td className="px-4 py-3"><span className="text-warning font-bold">Medium</span></td>
-                    <td className="px-4 py-3">28</td>
-                  </tr>
-                  <tr className="hover:bg-secondary/50 cursor-pointer transition-colors">
-                    <td className="px-4 py-3 font-medium">Karnataka</td>
-                    <td className="px-4 py-3"><span className="text-danger font-bold">High</span></td>
-                    <td className="px-4 py-3">39</td>
-                  </tr>
-                </tbody>
-              </table>
+              {isLoading ? (
+                <div className="flex h-32 items-center justify-center">
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-secondary/50 border-b border-border font-medium">
+                    <tr>
+                      <th className="px-4 py-3">State</th>
+                      <th className="px-4 py-3">Risk Level</th>
+                      <th className="px-4 py-3">High-Risk Works</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {states?.slice(0, 8).map((s: any) => (
+                      <tr key={s.state} className="hover:bg-secondary/50 cursor-pointer transition-colors">
+                        <td className="px-4 py-3 font-medium">{s.state}</td>
+                        <td className="px-4 py-3">
+                          <span className={`font-bold ${s.risk_level === 'High' ? 'text-danger' : s.risk_level === 'Medium' ? 'text-warning' : 'text-success'}`}>
+                            {s.risk_level}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">{s.high_risk_works}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

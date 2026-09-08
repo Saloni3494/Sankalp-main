@@ -1,0 +1,95 @@
+[
+  {
+    "model_id": "mplads_v7_M7",
+    "model_version": "7.0.0",
+    "dataset_version": "7.0.0",
+    "feature_version": "7.0.0",
+    "code_version": "7.0.0",
+    "training_cutoff": "2026-09-07",
+    "validation_period": "2024-01-01 to 2026-09-07",
+    "test_period": "LOCKED_TEST",
+    "random_seed": 42,
+    "hyperparameters": {
+      "n_estimators": 100,
+      "learning_rate": 0.03,
+      "max_depth": 4
+    },
+    "calibration_version": "isotonic_house_aware",
+    "metrics": {
+      "PR-AUC": "UNVALIDATED / PLACEHOLDER",
+      "Precision@100": "UNVALIDATED / PLACEHOLDER",
+      "ECE": "UNVALIDATED / PLACEHOLDER"
+    },
+    "artifact_path": "/Users/prathameshnawale/Desktop/dataset/artifacts/models/mplads_v7_M7_v7.0.0.pkl"
+  },
+  {
+    "model_id": "mplads_v7_M7",
+    "model_version": "7.0.0",
+    "dataset_version": "7.0.0",
+    "feature_version": "7.0.0",
+    "code_version": "7.0.0",
+    "training_cutoff": "2026-09-07",
+    "validation_period": "2024-01-01 to 2026-09-07",
+    "test_period": "LOCKED_TEST",
+    "random_seed": 42,
+    "hyperparameters": {
+      "n_estimators": 100,
+      "learning_rate": 0.03,
+      "max_depth": 4
+    },
+    "calibration_version": "isotonic_house_aware",
+    "metrics": {
+      "PR-AUC": "UNVALIDATED / PLACEHOLDER",
+      "Precision@100": "UNVALIDATED / PLACEHOLDER",
+      "ECE": "UNVALIDATED / PLACEHOLDER"
+    },
+    "artifact_path": "/Users/prathameshnawale/Desktop/dataset/artifacts/models/mplads_v7_M7_v7.0.0.pkl"
+  },
+  {
+    "model_id": "mplads_v7_M7",
+    "model_version": "7.0.0",
+    "dataset_version": "7.0.0",
+    "feature_version": "7.0.0",
+    "code_version": "7.0.0",
+    "training_cutoff": "2026-09-07",
+    "validation_period": "2024-01-01 to 2026-09-07",
+    "test_period": "LOCKED_TEST",
+    "random_seed": 42,
+    "hyperparameters": {
+      "n_estimators": 100,
+      "learning_rate": 0.03,
+      "max_depth": 4
+    },
+    "calibration_version": "isotonic_house_aware",
+    "metrics": {
+      "PR-AUC": "UNVALIDATED / PLACEHOLDER",
+      "Precision@100": "UNVALIDATED / PLACEHOLDER",
+      "ECE": "UNVALIDATED / PLACEHOLDER"
+    },
+    "artifact_path": "/Users/prathameshnawale/Desktop/dataset/artifacts/models/mplads_v7_M7_v7.0.0.pkl"
+  },
+  {
+    "model_id": "mplads_v7_M7",
+    "model_version": "7.0.0",
+    "dataset_version": "7.0.0",
+    "feature_version": "7.0.0",
+    "code_version": "7.0.0",
+    "training_cutoff": "2026-09-07",
+    "validation_period": "2023-01-01 to 2026-09-07",
+    "test_period": "LOCKED_TEST",
+    "random_seed": 42,
+    "hyperparameters": {
+      "n_estimators": 100,
+      "learning_rate": 0.03,
+      "max_depth": 4
+    },
+    "calibration_version": "isotonic_house_aware",
+    "metrics": {
+      "PR-AUC": "UNVALIDATED / PLACEHOLDER",
+      "Precision@100": "UNVALIDATED / PLACEHOLDER",
+      "ECE": "UNVALIDATED / PLACEHOLDER",
+      "LABEL_PROVENANCE": "WEAK_LABELS_PROTOTYPE"
+    },
+    "artifact_path": "D:\\SIH\\SIH 2026\\SIH26102  - MPLAD Scheme\\Sankalp-Proj\\backend\\ml_scripts\\Script\\artifacts\\models\\mplads_v7_M7_v7.0.0.pkl"
+  }
+]

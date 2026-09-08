@@ -180,7 +180,7 @@ export function TopHeader({ onMenu }: { onMenu: () => void }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-9 items-center justify-center rounded-full bg-navy-soft text-xs font-semibold text-navy hover:ring-2 hover:ring-primary/20 transition-all">
+            <button suppressHydrationWarning className="flex size-9 items-center justify-center rounded-full bg-navy-soft text-xs font-semibold text-navy hover:ring-2 hover:ring-primary/20 transition-all">
               {user?.avatar_initials || "MP"}
             </button>
           </DropdownMenuTrigger>

@@ -28,18 +28,20 @@ export function IndiaMap({ onSelectState }: { onSelectState?: (stateName: string
   const riskData = useMemo(() => {
     if (!states) return {};
     return states.reduce((acc: any, s: any) => {
-      acc[s.state.toLowerCase()] = { avg_risk: s.avg_risk, count: s.count };
+      acc[s.state.toLowerCase()] = { avg_risk: s.avg_risk, count: s.count, high_risk_works: s.high_risk_works };
       return acc;
     }, {});
   }, [states]);
 
   const getFill = (stateName: string) => {
     const entry = riskData[stateName.toLowerCase()];
-    const risk = entry?.avg_risk;
-    if (risk === undefined) return "#e2e8f0"; // slate-200 (No data)
-    if (risk >= 60) return "#C94F22"; // Saffron (High Risk)
-    if (risk >= 30) return "#fb923c"; // Orange (Med Risk)
-    if (risk > 0) return "#fcd34d"; // Yellow (Low Risk)
+    const hrw = entry?.high_risk_works;
+    const avg = entry?.avg_risk;
+    if (hrw === undefined && avg === undefined) return "#e2e8f0"; // slate-200 (No data)
+    
+    if (hrw >= 30) return "#C94F22"; // Saffron (High Risk)
+    if (hrw >= 10) return "#fb923c"; // Orange (Med Risk)
+    if (hrw > 0) return "#fcd34d"; // Yellow (Low Risk)
     return "#2F6B3F"; // Green (Safe)
   };
 

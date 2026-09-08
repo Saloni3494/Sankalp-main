@@ -622,9 +622,9 @@ export function BlockchainCertificateModal({
                       </span>
                       {cert.ai_risk_audit.anomalies.length > 0 ? (
                         <div className="space-y-1">
-                          {cert.ai_risk_audit.anomalies.map((anom, i) => (
+                          {cert.ai_risk_audit.anomalies.map((anom: any, i: number) => (
                             <div key={i} className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded">
-                              • {anom}
+                              • {typeof anom === 'string' ? anom : anom.description}
                             </div>
                           ))}
                         </div>

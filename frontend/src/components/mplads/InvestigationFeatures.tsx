@@ -306,7 +306,7 @@ export function AuditTimeMachine({ data, isLoading }: { data?: any; isLoading?: 
     date: new Date().toISOString().split('T')[0],
     title: "Current Snapshot",
     status: data?.missing_photo ? "Delayed / Flagged" : (data?.completion_date ? "Completed" : "In Progress"),
-    signal: data?.evidence?.length > 0 ? data.evidence[0] : "No significant anomalies detected.",
+    signal: data?.evidence?.length > 0 ? (typeof data.evidence[0] === 'string' ? data.evidence[0] : data.evidence[0].description) : "No significant anomalies detected.",
     risk: data?.risk_score || 0,
     level: (data?.risk_score || 0) >= 60 ? "High" : (data?.risk_score || 0) >= 30 ? "Medium" : "Low"
   });
